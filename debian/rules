@@ -1,0 +1,23 @@
+#!/usr/bin/make -f
+# You must remove unused comment lines for the released package.
+export DH_VERBOSE = 1
+#export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+#export DEB_CFLAGS_MAINT_APPEND  = -Wall -pedantic
+#export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	./autogen.sh
+	./configure --with-gui=no --disable-bench --prefix=/usr CPPFLAGS=-Wdate-time
+
+override_dh_auto_build:
+	make
+
+override_dh_auto_test:
+	make check
+
+override_dh_auto_clean:
+	dh_clean
+	rm -f src/test/stats_tests.log
