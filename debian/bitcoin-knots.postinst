@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -e
+
+USER="bitcoin"
+
+case "$1" in
+  configure|reconfigure)
+
+  if ! getent passwd $USER >/dev/null; then
+      useradd --system --create-home $USER >/dev/null || true
+  fi
+  ;;
+esac
+
+exit 0

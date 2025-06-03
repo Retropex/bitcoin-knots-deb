@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -e
+
+USER="bitcoin"
+
+case "$1" in
+  remove|purge)
+    if getent passwd $USER >/dev/null; then
+      userdel --remove $USER || true
+    fi
+    
+    if [ -d "/home/$USER/.bitcoin" ]; then
+      rm -rf /home/$USER/.bitcoin || true
+    fi
+    ;;
+    
+  upgrade|remove|failed-upgrade|abort-install|abort-upgrade|disappear)
+    ;;
+esac
+
+exit 0
