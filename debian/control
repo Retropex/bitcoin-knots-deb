@@ -1,5 +1,5 @@
 Source: bitcoin-knots
-Section: utils
+Section: net
 Priority: optional
 Maintainer: Léo Haf <leo@haf.ovh>
 Build-Depends: debhelper-compat (= 13), libtool, autotools-dev, automake, pkg-config, bsdextrautils, python3, libevent-dev, libboost-dev, libsqlite3-dev, libnatpmp-dev, libzmq3-dev, systemtap-sdt-dev
