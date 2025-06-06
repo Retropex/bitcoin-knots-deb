@@ -2,7 +2,7 @@ Source: bitcoin-knots
 Section: utils
 Priority: optional
 Maintainer: Léo Haf <leo@haf.ovh>
-Build-Depends: debhelper-compat (= 13), libtool, autotools-dev, automake, pkg-config, bsdextrautils, python3, libevent-dev, libboost-dev, libsqlite3-dev, libminiupnpc-dev, libnatpmp-dev, libzmq3-dev, systemtap-sdt-dev
+Build-Depends: debhelper-compat (= 13), libtool, autotools-dev, automake, pkg-config, bsdextrautils, python3, libevent-dev, libboost-dev, libsqlite3-dev, libnatpmp-dev, libzmq3-dev, systemtap-sdt-dev
 Standards-Version: 4.6.2
 Homepage: https://bitcoinknots.org
 Rules-Requires-Root: no
