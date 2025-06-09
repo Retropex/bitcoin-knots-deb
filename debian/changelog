@@ -1,3 +1,9 @@
+bitcoin-knots (28.1.knots20250305-2) UNRELEASED; urgency=low
+
+  * Experimental configure.ac 
+
+ -- Greg <greg.tonoski@gmail.com>  Mon, 10 Jun 2025 13:45:05 +0000
+
 bitcoin-knots (28.1.knots20250305-1) UNRELEASED; urgency=low
 
   * Initial release. Closes: #1106648
