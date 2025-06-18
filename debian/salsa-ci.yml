@@ -1,3 +1,106 @@
 ---
 include:
-  - https://salsa.debian.org/salsa-ci-team/pipeline/raw/master/recipes/debian.yml
+  - https://salsa.debian.org/salsa-ci-team/pipeline/raw/master/salsa-ci.yml
+
+extract-source:
+  extends: .provisioning-extract-source
+
+build:
+  extends: .build-package
+  timeout: 3h
+
+build i386:
+  extends: .build-package-i386
+  timeout: 3h
+
+build armel:
+  extends: .build-package-armel
+  timeout: 3h
+
+build armhf:
+  extends: .build-package-armhf
+  timeout: 3h
+
+build arm64:
+  extends: .build-package-arm64
+  timeout: 3h
+
+build riscv64:
+  extends: .build-package-riscv64
+  timeout: 3h
+
+build source:
+  extends: .build-source-only
+  timeout: 3h
+
+test-build-any:
+  extends: .test-build-package-any
+
+test-build-all:
+  extends: .test-build-package-all
+
+test-build-twice:
+  extends: .test-build-package-twice
+
+test-build-profiles:
+  extends: .test-build-package-profiles
+
+test-crossbuild-arm64:
+  extends: .test-crossbuild-package-arm64
+
+reprotest:
+  extends: .test-reprotest
+  timeout: 3h
+
+lintian:
+  extends: .test-lintian
+
+autopkgtest:
+  extends: .test-autopkgtest
+
+blhc:
+  extends: .test-blhc
+  timeout: 3h
+
+piuparts:
+  extends: .test-piuparts
+
+missing-breaks:
+  extends: .test-missing-breaks
+
+rc-bugs:
+  extends: .test-rc-bugs
+
+wrap-and-sort:
+  extends: .test-wrap-and-sort
+
+aptly:
+  extends: .publish-aptly
+
+## Atomic Reprotest jobs
+atomic-reprotest:
+  extends: .test-reprotest
+  rules:
+    - if: $SALSA_CI_ENABLE_ATOMIC_REPROTEST =~ /^(1|yes|true)$/
+  variables:
+    SALSA_CI_REPROTEST_ARGS: '--variations=-all --variations=${VARIATION}'
+  parallel:
+    matrix:
+      - VARIATION:
+          - aslr
+          - build_path
+          - domain_host
+          - environment
+          - exec_path
+          - fileordering
+          - home
+          - kernel
+          - locales
+          - num_cpus
+          - time
+          - timezone
+          - umask
+          - user_group
+
+variables:
+  SALSA_CI_BUILD_TIMEOUT_ARGS: "3h"
