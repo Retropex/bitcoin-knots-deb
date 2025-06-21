@@ -5,7 +5,7 @@ set -e
 USER="bitcoin"
 
 case "$1" in
-  remove|purge)
+  purge)
     if getent passwd $USER >/dev/null; then
       userdel --remove $USER || true
     fi
