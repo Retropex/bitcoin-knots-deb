@@ -12,10 +12,12 @@ case "$1" in
   fi
   
   if [ ! -d "/home/$USER/.bitcoin" ]; then
-    mkdir -p /home/$USER/.bitcoin
-    touch /home/$USER/.bitcoin/bitcoin.conf
-    chown -R $USER:$USER /home/$USER/.bitcoin
-    echo -e "txindex=1 \nserver=1" > /home/$USER/.bitcoin/bitcoin.conf
+    if [ -d "/home" ]; then
+      mkdir -p /home/$USER/.bitcoin
+      touch /home/$USER/.bitcoin/bitcoin.conf
+      chown -R $USER:$USER /home/$USER/.bitcoin
+      echo -e "txindex=1 \nserver=1" > /home/$USER/.bitcoin/bitcoin.conf
+    fi
   fi
   ;;
 esac
