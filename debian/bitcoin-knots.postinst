@@ -10,6 +10,13 @@ case "$1" in
   if ! getent passwd $USER >/dev/null; then
       useradd --system --create-home $USER >/dev/null || true
   fi
+  
+  if [ ! -d "/home/$USER/.bitcoin" ]; then
+    mkdir -p /home/$USER/.bitcoin
+    touch /home/$USER/.bitcoin/bitcoin.conf
+    chown -R $USER:$USER /home/$USER/.bitcoin
+    echo -e "txindex=1 \nserver=1" > /home/$USER/.bitcoin/bitcoin.conf
+  fi
   ;;
 esac
 
