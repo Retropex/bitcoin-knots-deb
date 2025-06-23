@@ -1,4 +1,4 @@
-bitcoin-knots (28.1.knots20250305-1) bookworm; urgency=low
+bitcoin-knots (28.1.knots20250305-1) unstable; urgency=low
 
   * Initial release. Closes: #1106648
 
