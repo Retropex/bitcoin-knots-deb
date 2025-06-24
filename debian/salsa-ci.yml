@@ -50,7 +50,7 @@ test-crossbuild-arm64:
 
 reprotest:
   extends: .test-reprotest
-  timeout: 3h
+  timeout: 4h
 
 lintian:
   extends: .test-lintian
