@@ -8,15 +8,14 @@ case "$1" in
   configure|reconfigure)
 
   if ! getent passwd $USER >/dev/null; then
-      useradd --system --create-home $USER >/dev/null || true
+      useradd --system --create-home --user-group $USER >/dev/null || true
   fi
   
   if [ ! -d "/home/$USER/.bitcoin" ]; then
     if [ -d "/home" ]; then
-      mkdir -p /home/$USER/.bitcoin
-      touch /home/$USER/.bitcoin/bitcoin.conf
-      chown -R $USER:$USER /home/$USER/.bitcoin
-      echo -e "txindex=1 \nserver=1" > /home/$USER/.bitcoin/bitcoin.conf
+      runuser -u $USER mkdir -p /home/$USER/.bitcoin
+      runuser -u $USER touch /home/$USER/.bitcoin/bitcoin.conf
+      runuser -u $USER -- bash -c "echo -e 'txindex=1 \nserver=1' > /home/$USER/.bitcoin/bitcoin.conf"
     fi
   fi
   ;;
