@@ -1,5 +1,6 @@
 [Unit]
 Description=Bitcoin Daemon
+Documentation=man:bitcoind
 After=network.target
 [Service]
 User=bitcoin

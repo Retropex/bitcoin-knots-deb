@@ -1,5 +1,6 @@
 Description: Apply git commit ID
 Author: Léo Haf <leo@haf.ovh>
+Forwarded: not-needed
 Last-Update: 2025-06-02
 
 --- bitcoin-knots-28.1.knots20250305.orig/src/clientversion.cpp
