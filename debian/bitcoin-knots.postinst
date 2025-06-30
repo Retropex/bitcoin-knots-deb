@@ -30,9 +30,9 @@ case "$1" in
   fi
   
   if [ -d "/run" ]; then
-    if [ ! -d "/run/bitcoin" ]; then
-      mkdir -p /run/bitcoin
-      chown $USER:$USER /run/bitcoin
+    if [ ! -d "/run/bitcoind" ]; then
+      mkdir -p /run/bitcoind
+      chown $USER:$USER /run/bitcoind
     fi
   fi
   ;;
