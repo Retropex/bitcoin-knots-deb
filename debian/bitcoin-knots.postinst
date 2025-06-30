@@ -11,11 +11,28 @@ case "$1" in
       useradd --system --create-home --user-group $USER >/dev/null || true
   fi
   
-  if [ ! -d "/home/$USER/.bitcoin" ]; then
-    if [ -d "/home" ]; then
-      runuser -u $USER mkdir -p /home/$USER/.bitcoin
-      runuser -u $USER touch /home/$USER/.bitcoin/bitcoin.conf
+  if [ -d "/etc" ]; then
+    if [ ! -d "/etc/bitcoin" ]; then
+      mkdir -p /etc/bitcoin
+      chown $USER:$USER /etc/bitcoin
+    fi
+    if [ ! -f "/etc/bitcoin/bitcoin.conf" ]; then
+      runuser -u $USER touch /etc/bitcoin/bitcoin.conf
       runuser -u $USER -- bash -c "echo -e 'txindex=1 \nserver=1' > /home/$USER/.bitcoin/bitcoin.conf"
+    fi
+  fi
+  
+  if [ -d "/var/lib" ]; then
+    if [ ! -d "/var/lib/bitcoin" ]; then
+      mkdir -p /var/lib/bitcoin
+      chown $USER:$USER /var/lib/bitcoin
+    fi
+  fi
+  
+  if [ -d "/run" ]; then
+    if [ ! -d "/run/bitcoin" ]; then
+      mkdir -p /run/bitcoin
+      chown $USER:$USER /run/bitcoin
     fi
   fi
   ;;

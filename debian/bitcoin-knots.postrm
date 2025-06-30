@@ -10,8 +10,16 @@ case "$1" in
       userdel --remove $USER || true
     fi
     
-    if [ -d "/home/$USER/.bitcoin" ]; then
-      rm -rf /home/$USER/.bitcoin || true
+    if [ -d "/etc/bitcoin" ]; then
+      rm -rf /etc/bitcoin || true
+    fi
+    
+    if [ -d "/var/lib/bitcoin" ]; then
+      rm -rf /var/lib/bitcoin || true
+    fi
+    
+    if [ -d "/run/bitcoin" ]; then
+      rm -rf /run/bitcoin || true
     fi
     ;;
     
