@@ -1,23 +1,14 @@
 #!/usr/bin/make -f
 export DH_VERBOSE = 1
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
-DPKG_EXPORT_BUILDFLAGS = 1
-
-include /usr/share/dpkg/buildflags.mk
-
-CFLAGS += $(CPPFLAGS)
-CXXFLAGS += $(CPPFLAGS)
 
 %:
 	dh $@
 
-override_dh_auto_configure:
-	./autogen.sh
-	./configure --with-gui=no --disable-bench --prefix=/usr CPPFLAGS="-Wdate-time -D_FORTIFY_SOURCE=2" CFLAGS="$(CFLAGS) -fPIE -fstack-clash-protection -fcf-protection" CXXFLAGS="$(CXXFLAGS) -fPIE -fcf-protection" LDFLAGS="-fPIE -pie -Wl,-z,relro -Wl,-z,now" --disable-silent-rules > /dev/null
-
 override_dh_auto_install:
 	dh_auto_install
 	rm -f debian/bitcoin-knots/usr/bin/test_bitcoin
+	rm -f debian/bitcoin-knots/usr/bin/bench_bitcoin
 	rm -rf debian/bitcoin-knots/usr/lib
 	rm -rf debian/bitcoin-knots/usr/include
 
