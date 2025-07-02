@@ -1,0 +1,3 @@
+contrib/completions/bash/bitcoin-cli.bash bitcoin-cli
+contrib/completions/bash/bitcoin-tx.bash bitcoin-tx
+contrib/completions/bash/bitcoind.bash bitcoind

@@ -14,7 +14,8 @@ Build-Depends: debhelper-compat (= 13),
  libminiupnpc-dev,
  libnatpmp-dev,
  libzmq3-dev,
- systemtap-sdt-dev
+ systemtap-sdt-dev,
+ bash-completion
 Standards-Version: 4.7.2
 Homepage: https://bitcoinknots.org
 Vcs-Git: https://salsa.debian.org/cryptocoin-team/bitcoin-knots.git
