@@ -18,8 +18,8 @@ case "$1" in
       rm -rf /var/lib/bitcoin || true
     fi
     
-    if [ -d "/run/bitcoin" ]; then
-      rm -rf /run/bitcoin || true
+    if [ -d "/run/bitcoind" ]; then
+      rm -rf /run/bitcoind || true
     fi
     ;;
     
