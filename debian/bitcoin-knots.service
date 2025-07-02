@@ -4,7 +4,7 @@ Documentation=man:bitcoind
 After=network.target
 [Service]
 User=bitcoin
-ExecStart=/usr/bin/bitcoind -datadir=/var/lib/bitcoin -conf=/etc/bitcoin/bitcoin.conf -pid=/run/bitcoind/bitcoind.pid
+ExecStart=/usr/bin/bitcoind -conf=/etc/bitcoin/bitcoin.conf -pid=/run/bitcoind/bitcoind.pid
 ExecStop=/usr/bin/bitcoin-cli stop
 Restart=on-failure
 TimeoutSec=600
