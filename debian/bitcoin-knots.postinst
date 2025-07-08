@@ -28,13 +28,6 @@ case "$1" in
       chown $USER:$USER /var/lib/bitcoin
     fi
   fi
-  
-  if [ -d "/run" ]; then
-    if [ ! -d "/run/bitcoind" ]; then
-      mkdir -p /run/bitcoind
-      chown $USER:$USER /run/bitcoind
-    fi
-  fi
   ;;
 esac
 

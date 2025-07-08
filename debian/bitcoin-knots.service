@@ -4,11 +4,15 @@ Documentation=man:bitcoind
 After=network.target
 [Service]
 User=bitcoin
-ExecStart=/usr/bin/bitcoind -conf=/etc/bitcoin/bitcoin.conf -pid=/run/bitcoind/bitcoind.pid
-ExecStop=/usr/bin/bitcoin-cli stop
+ExecStart=/usr/bin/bitcoind -conf=/etc/bitcoin/bitcoin.conf
+ExecStop=/usr/bin/bitcoin-cli -conf=/etc/bitcoin/bitcoin.conf stop
 Restart=on-failure
 TimeoutSec=600
 RestartSec=30
+
+RuntimeDirectory=bitcoind
+RuntimeDirectoryMode=0710
+
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_NET_BROADCAST CAP_NET_RAW
 NoNewPrivileges=yes
 RemoveIPC=yes

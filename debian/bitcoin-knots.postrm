@@ -17,10 +17,6 @@ case "$1" in
     if [ -d "/var/lib/bitcoin" ]; then
       rm -rf /var/lib/bitcoin || true
     fi
-    
-    if [ -d "/run/bitcoind" ]; then
-      rm -rf /run/bitcoind || true
-    fi
     ;;
     
   upgrade|remove|failed-upgrade|abort-install|abort-upgrade|disappear)
