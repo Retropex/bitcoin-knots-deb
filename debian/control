@@ -2,16 +2,28 @@ Source: bitcoin-knots
 Section: utils
 Priority: optional
 Maintainer: Léo Haf <leo@haf.ovh>
-Build-Depends: debhelper-compat (= 13), libtool, pkgconf, automake, bsdextrautils, python3, libevent-dev, libboost-dev, libsqlite3-dev, libminiupnpc-dev, libnatpmp-dev, libzmq3-dev, systemtap-sdt-dev
+Build-Depends: debhelper-compat (= 13),
+ libtool,
+ pkgconf,
+ automake,
+ bsdextrautils,
+ python3,
+ libevent-dev,
+ libboost-dev,
+ libsqlite3-dev,
+ libminiupnpc-dev,
+ libnatpmp-dev,
+ libzmq3-dev,
+ systemtap-sdt-dev
 Standards-Version: 4.7.2
 Homepage: https://bitcoinknots.org
-Rules-Requires-Root: no
 Vcs-Git: https://salsa.debian.org/cryptocoin-team/bitcoin-knots.git
 Vcs-Browser: https://salsa.debian.org/cryptocoin-team/bitcoin-knots
 
 Package: bitcoin-knots
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}
+Depends: ${misc:Depends},
+ ${shlibs:Depends}
 Description: enhanced Bitcoin node/wallet software
  Bitcoin Knots is the original Bitcoin client and it builds the
  backbone of the network.
