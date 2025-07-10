@@ -6,9 +6,13 @@ USER="bitcoin"
 
 case "$1" in
   configure|reconfigure)
-
+  
   if ! getent passwd $USER >/dev/null; then
       useradd --system --user-group $USER >/dev/null || true
+  fi
+  
+  if getent group debian-tor >/dev/null; then
+    usermod -aG debian-tor $USER >/dev/null || true
   fi
   
   if [ -d "/etc" ]; then
