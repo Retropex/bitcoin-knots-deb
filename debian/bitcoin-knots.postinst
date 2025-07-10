@@ -18,6 +18,7 @@ case "$1" in
     fi
     if [ ! -f "/etc/bitcoin/bitcoin.conf" ]; then
       runuser -u $USER touch /etc/bitcoin/bitcoin.conf
+      chmod 640 /etc/bitcoin/bitcoin.conf
       runuser -u $USER -- bash -c "echo -e 'txindex=1 \nserver=1 \ndatadir=/var/lib/bitcoin' > /etc/bitcoin/bitcoin.conf"
     fi
   fi
