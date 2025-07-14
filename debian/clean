@@ -1,0 +1,2 @@
+# Remove the generated test log.
+src/test/stats_tests.log

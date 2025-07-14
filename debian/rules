@@ -12,6 +12,3 @@ execute_after_dh_auto_install:
 	# Those libs will be deprecated in a future release and are not very used among developers.
 	rm -rf debian/bitcoin-knots/usr/lib
 	rm -rf debian/bitcoin-knots/usr/include
-
-execute_after_dh_auto_clean:
-	rm -f src/test/stats_tests.log
