@@ -4,11 +4,3 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
 %:
 	dh $@
-
-execute_after_dh_auto_install:
-	# Deleting test binaries.
-	rm -f debian/bitcoin-knots/usr/bin/test_bitcoin
-	rm -f debian/bitcoin-knots/usr/bin/bench_bitcoin
-	# Those libs will be deprecated in a future release and are not very used among developers.
-	rm -rf debian/bitcoin-knots/usr/lib
-	rm -rf debian/bitcoin-knots/usr/include
