@@ -1,0 +1,4 @@
+# False positive
+bitcoin-knots: hardening-no-fortify-functions [usr/bin/bitcoin-cli]
+bitcoin-knots: hardening-no-fortify-functions [usr/bin/bitcoin-util]
+bitcoin-knots: spelling-error-in-binary
