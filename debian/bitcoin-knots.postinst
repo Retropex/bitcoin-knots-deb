@@ -8,7 +8,7 @@ case "$1" in
   configure|reconfigure)
   
   if ! getent passwd $USER >/dev/null; then
-      adduser --no-create-home --group --system $USER >/dev/null || true
+      adduser --group --system --no-create-home --home /nonexistent $USER >/dev/null || true
   fi
   
   if getent group debian-tor >/dev/null; then
