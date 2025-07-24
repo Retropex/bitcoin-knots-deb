@@ -7,7 +7,7 @@ USER="bitcoin"
 case "$1" in
   purge)
     if getent passwd $USER >/dev/null; then
-      userdel --remove $USER || true
+      deluser --system $USER || true
     fi
     
     if [ -d "/etc/bitcoin" ]; then
