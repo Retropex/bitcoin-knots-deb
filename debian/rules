@@ -7,3 +7,7 @@ export DEB_CFLAGS_MAINT_APPEND = -fstack-clash-protection -fcf-protection
 
 %:
 	dh $@
+
+override_dh_auto_configure:
+	# muted to avoid false positives in lintian
+	dh_auto_configure > /dev/null
