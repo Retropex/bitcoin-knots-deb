@@ -9,7 +9,8 @@ Copyright: 2009-2022 The Bitcoin Core developers
 License: Expat
 
 Files: debian/*
-Copyright: Léo Haf
+Copyright: 2025 Léo Haf <leo@haf.ovh>
+           2025 Soren Stoutner <soren@debian.org>
 License: Expat
 
 Files: build-aux/m4/ax_check_compile_flag.m4
