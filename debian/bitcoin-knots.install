@@ -3,3 +3,4 @@ usr/bin/bitcoin-tx
 usr/bin/bitcoin-util
 usr/bin/bitcoin-wallet
 usr/bin/bitcoind
+share/bitcoin.conf /etc/bitcoin/

@@ -11,3 +11,10 @@ export DEB_CFLAGS_MAINT_APPEND = -fstack-clash-protection -fcf-protection
 override_dh_auto_configure:
 	# muted to avoid false positives in lintian
 	dh_auto_configure > /dev/null
+
+override_dh_auto_build:
+	dh_auto_build
+	cp share/examples/bitcoin.conf share/bitcoin.conf
+	sed -i 's/#datadir=<dir>/datadir=\/var\/lib\/bitcoin\//' share/bitcoin.conf
+	sed -i 's/#server=1/server=1/' share/bitcoin.conf
+	sed -i 's/#txindex=1/txindex=1/' share/bitcoin.conf

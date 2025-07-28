@@ -1,6 +1,6 @@
 # Remove the generated test log.
 src/test/stats_tests.log
-#remove uncleaned assets
+# Remove uncleaned assets
 src/qt/res/rendered_icons/bitcoin.ico
 src/qt/res/fonts/RobotoTonalMono-Bold.ttf
 src/qt/res/rendered_icons/bitcoin1024.png
@@ -12,3 +12,5 @@ src/qt/res/rendered_icons/bitcoin32d8.gif
 src/qt/res/rendered_icons/bitcoin48.png
 src/qt/res/rendered_icons/bitcoin_testnet.ico
 src/qt/res/rendered_icons/bitcoin64.png
+# Remove temporary conf file
+share/bitcoin.conf
