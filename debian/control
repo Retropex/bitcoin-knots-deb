@@ -33,9 +33,9 @@ Vcs-Browser: https://salsa.debian.org/cryptocoin-team/bitcoin-knots
 Package: bitcoin-knots
 Architecture: any
 # The postinst script requires adduser.
-Pre-Depends: adduser
 Depends: ${misc:Depends},
- ${shlibs:Depends}
+ ${shlibs:Depends},
+ adduser
 Description: enhanced Bitcoin node/wallet software
  Bitcoin Knots is the original Bitcoin client and it builds the
  backbone of the network.
