@@ -21,6 +21,10 @@ case "$1" in
       chown $USER:$USER /var/lib/bitcoin
     fi
   fi
+  
+  if [ -f "/etc/bitcoin/bitcoin.conf" ]; then
+    dpkg-statoverride --force-statoverride-add --update --add bitcoin bitcoin 0640 /etc/bitcoin/bitcoin.conf
+  fi
   ;;
 esac
 

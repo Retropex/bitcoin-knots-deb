@@ -10,8 +10,8 @@ case "$1" in
       deluser --system $USER || true
     fi
     
-    if [ -d "/etc/bitcoin" ]; then
-      rm -rf /etc/bitcoin || true
+    if [ -f /etc/bitcoin/bitcoin.conf ]; then
+      dpkg-statoverride --remove --force-statoverride-remove /etc/bitcoin/bitcoin.conf
     fi
     
     if [ -d "/var/lib/bitcoin" ]; then
