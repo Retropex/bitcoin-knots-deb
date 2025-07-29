@@ -15,11 +15,8 @@ case "$1" in
     usermod -aG debian-tor $USER >/dev/null || true
   fi
   
-  if [ -d "/var/lib" ]; then
-    if [ ! -d "/var/lib/bitcoin" ]; then
-      mkdir -p /var/lib/bitcoin
-      chown $USER:$USER /var/lib/bitcoin
-    fi
+  if [ -d "/var/lib/bitcoin" ]; then
+    dpkg-statoverride --force-statoverride-add --update --add bitcoin bitcoin 0755 /var/lib/bitcoin
   fi
   
   if [ -f "/etc/bitcoin/bitcoin.conf" ]; then
