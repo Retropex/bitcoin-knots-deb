@@ -10,13 +10,8 @@ case "$1" in
       deluser --system $USER || true
     fi
     
-    if [ -f /etc/bitcoin/bitcoin.conf ]; then
-      dpkg-statoverride --remove --force-statoverride-remove /etc/bitcoin/bitcoin.conf
-    fi
-    
-    if [ -d "/var/lib/bitcoin" ]; then
-      dpkg-statoverride --remove --force-statoverride-remove /var/lib/bitcoin
-    fi
+    dpkg-statoverride --remove --force-statoverride-remove /etc/bitcoin/bitcoin.conf
+    dpkg-statoverride --remove --force-statoverride-remove /var/lib/bitcoin
     ;;
     
   upgrade|remove|failed-upgrade|abort-install|abort-upgrade|disappear)
