@@ -14,9 +14,16 @@ case "$1" in
   if getent group debian-tor >/dev/null; then
     usermod -aG debian-tor $USER >/dev/null || true
   fi
+
+  # Add the /etc/bitcoin/bitcoin.conf stat override if it doesn't already exist.
+  if ! dpkg-statoverride --list /var/lib/bitcoin >/dev/null 2>&1; then
+    dpkg-statoverride --update --add bitcoin bitcoin 0640 /etc/bitcoin/bitcoin.conf
+  fi
   
-  dpkg-statoverride --force-statoverride-add --update --add bitcoin bitcoin 0755 /var/lib/bitcoin
-  dpkg-statoverride --force-statoverride-add --update --add bitcoin bitcoin 0640 /etc/bitcoin/bitcoin.conf
+  # Add the /var/lib/bitcoin stat override if it doesn't already exist.
+  if ! dpkg-statoverride --list /var/lib/bitcoin >/dev/null 2>&1; then
+    dpkg-statoverride --update --add bitcoin bitcoin 0755 /var/lib/bitcoin
+  fi
   ;;
 esac
 
