@@ -2,8 +2,12 @@
 export DH_VERBOSE = 1
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all,-fortify
 export DEB_CPPFLAGS_MAINT_APPEND = -D_FORTIFY_SOURCE=3
-export DEB_CXXFLAGS_MAINT_APPEND = -fcf-protection
-export DEB_CFLAGS_MAINT_APPEND = -fstack-clash-protection -fcf-protection
+ifeq ($(shell dpkg --print-architecture),arm64)
+  export DEB_CFLAGS_MAINT_APPEND = -fstack-clash-protection
+else
+  export DEB_CXXFLAGS_MAINT_APPEND = -fcf-protection
+  export DEB_CFLAGS_MAINT_APPEND = -fstack-clash-protection -fcf-protection
+endif
 
 %:
 	dh $@
