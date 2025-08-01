@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# Exit on error
+set -e
+
+# Copy the config file to the expected location.
+cp debian/tests/config.ini test/
+
+# Run the upstream tests.
+test/util/test_runner.py

@@ -1,3 +1,4 @@
 desktop_file.patch
 descriptive_man.patch
 git_hash.patch
+fix_test_executable_path.patch

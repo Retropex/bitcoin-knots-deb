@@ -11,7 +11,11 @@ License: Expat
 Files: debian/*
 Copyright: 2025 Léo Haf <leo@haf.ovh>
            2025 Soren Stoutner <soren@debian.org>
+           2013-2016 The Bitcoin Core developers
 License: Expat
+Comment:
+ debian/tests/config.ini is a modified version of an upstream file copyrighted
+ by The Bitcoin Core Developers.
 
 Files: build-aux/m4/ax_check_compile_flag.m4
        build-aux/m4/ax_check_link_flag.m4
