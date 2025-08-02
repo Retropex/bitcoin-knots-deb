@@ -1,0 +1,24 @@
+Description: The tests are designed to be run after the build and before
+ installation.  To accomplish this, they are designed to look for the binary
+ with a hard path starting at / and ending in src/ inside the build directory.
+ This patch simply calls the name of the binary (bitcoind, bitcoin-cli, etc.),
+ which can be found in /usr/bin when the binary package is installed.
+Author: Soren Stoutner <soren@debian.org>
+Forwarded: not-needed
+Last-Update: 2025-08-01
+
+--- a/test/functional/test_framework/test_framework.py
++++ b/test/functional/test_framework/test_framework.py
+@@ -242,11 +242,7 @@ class BitcoinTestFramework(metaclass=Bit
+             "bitcoin-wallet": ("bitcoinwallet", "BITCOINWALLET"),
+         }
+         for binary, [attribute_name, env_variable_name] in binaries.items():
+-            default_filename = os.path.join(
+-                self.config["environment"]["BUILDDIR"],
+-                "src",
+-                binary + self.config["environment"]["EXEEXT"],
+-            )
++            default_filename = binary
+             setattr(self.options, attribute_name, os.getenv(env_variable_name, default=default_filename))
+ 
+     def setup(self):
