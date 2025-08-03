@@ -6,5 +6,13 @@ set -e
 # Copy the config file to the expected location.
 cp debian/tests/config.ini test/
 
+# Stop the bitcoind service if it is running.  The tests will launch their
+# own instance of bitcoind.
+if [ -f "/usr/bin/systemctl" ]; then
+    if systemctl list-unit-files --all | grep -Fq "bitcoind"; then
+        service bitcoind stop
+    fi
+fi
+
 # Run the upstream tests.
 test/functional/test_runner.py --extended
