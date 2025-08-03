@@ -1,4 +1,3 @@
-#Tests: functional, util
-Tests: functional
+Tests: functional, util
 Depends: @,
          python3-zmq
