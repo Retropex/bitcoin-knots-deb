@@ -10,7 +10,7 @@ cp debian/tests/config.ini test/
 # own instance of bitcoind.
 if [ -f "/usr/bin/systemctl" ]; then
     if systemctl list-unit-files --all | grep -Fq "bitcoin-knots"; then
-        service bitcoin-knots stop
+        systemctl stop bitcoin-knots
     fi
 fi
 
