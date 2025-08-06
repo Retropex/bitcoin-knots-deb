@@ -1,3 +1,4 @@
 Tests: functional
 Depends: @,
+         initscripts,
          python3-zmq
