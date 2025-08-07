@@ -1,4 +1,4 @@
 Tests: functional
 Depends: @,
-         initscripts,
+         sysvinit-utils,
          python3-zmq
