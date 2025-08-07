@@ -1,4 +1,5 @@
 Tests: functional
+Restrictions: needs-root
 Depends: @,
          sysvinit-utils,
          python3-zmq
