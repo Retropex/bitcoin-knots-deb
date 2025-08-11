@@ -1,0 +1,36 @@
+Description: The tests are designed to be run after the build and before
+ installation.  To accomplish this, they are designed to look for the binary
+ with a hard path starting at / and ending in src/ inside the build directory.
+ This patch simply calls the name of the binary (bitcoind, bitcoin-cli, etc.),
+ which can be found in /usr/bin when the binary package is installed.
+Author: Soren Stoutner <soren@debian.org>
+Forwarded: not-needed
+Last-Update: 2025-08-02
+
+--- a/test/functional/test_framework/test_framework.py
++++ b/test/functional/test_framework/test_framework.py
+@@ -242,11 +242,7 @@ class BitcoinTestFramework(metaclass=Bit
+             "bitcoin-wallet": ("bitcoinwallet", "BITCOINWALLET"),
+         }
+         for binary, [attribute_name, env_variable_name] in binaries.items():
+-            default_filename = os.path.join(
+-                self.config["environment"]["BUILDDIR"],
+-                "src",
+-                binary + self.config["environment"]["EXEEXT"],
+-            )
++            default_filename = binary
+             setattr(self.options, attribute_name, os.getenv(env_variable_name, default=default_filename))
+ 
+     def setup(self):
+--- a/test/functional/test_runner.py
++++ b/test/functional/test_runner.py
+@@ -481,7 +481,8 @@ def main():
+ 
+     # Set up logging
+     logging_level = logging.INFO if args.quiet else logging.DEBUG
+-    logging.basicConfig(format='%(message)s', level=logging_level)
++    # Log to stdout instead of stderr, which is the default for Python.
++    logging.basicConfig(stream=sys.stdout, format='%(message)s', level=logging_level)
+ 
+     # Create base test directory
+     tmpdir = "%s/test_runner_₿_🏃_%s" % (args.tmpdirprefix, datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
