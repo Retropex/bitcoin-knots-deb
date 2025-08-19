@@ -1,4 +1,4 @@
-Tests: functional
+Tests: functional, unit
 Restrictions: needs-root
 Depends: @,
          sysvinit-utils,
