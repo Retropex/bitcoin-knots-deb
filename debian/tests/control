@@ -3,6 +3,7 @@ Restrictions: needs-root
 Depends: @,
          sysvinit-utils,
          python3-zmq,
+         build-essential,
          debhelper-compat (= 13),
          libtool,
          pkgconf,
