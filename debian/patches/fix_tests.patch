@@ -22,7 +22,7 @@ Last-Update: 2025-08-26
 -            )
 +            default_filename = binary
              setattr(self.options, attribute_name, os.getenv(env_variable_name, default=default_filename))
-
+ 
      def setup(self):
 --- a/test/functional/test_runner.py
 +++ b/test/functional/test_runner.py
