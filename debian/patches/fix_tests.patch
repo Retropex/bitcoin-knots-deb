@@ -2,10 +2,12 @@ Description: The tests are designed to be run after the build and before
  installation.  To accomplish this, they are designed to look for the binary
  with a hard path starting at / and ending in src/ inside the build directory.
  This patch simply calls the name of the binary (bitcoind, bitcoin-cli, etc.),
- which can be found in /usr/bin when the binary package is installed.
+ which can be found in /usr/bin when the binary package is installed.  It also
+ logs the test output to stdout instead of stderr.  Actual errors are still
+ detected as such by autopkgtest.
 Author: Soren Stoutner <soren@debian.org>
 Forwarded: not-needed
-Last-Update: 2025-08-02
+Last-Update: 2025-08-26
 
 --- a/test/functional/test_framework/test_framework.py
 +++ b/test/functional/test_framework/test_framework.py
@@ -20,7 +22,7 @@ Last-Update: 2025-08-02
 -            )
 +            default_filename = binary
              setattr(self.options, attribute_name, os.getenv(env_variable_name, default=default_filename))
- 
+
      def setup(self):
 --- a/test/functional/test_runner.py
 +++ b/test/functional/test_runner.py
@@ -29,8 +31,20 @@ Last-Update: 2025-08-02
      # Set up logging
      logging_level = logging.INFO if args.quiet else logging.DEBUG
 -    logging.basicConfig(format='%(message)s', level=logging_level)
-+    # Log to stdout instead of stderr, which is the default for Python.
++    # Log to stdout instead of stderr.  Otherwise, the successful test output is interpreted as an error by autopkgtest.
 +    logging.basicConfig(stream=sys.stdout, format='%(message)s', level=logging_level)
  
      # Create base test directory
      tmpdir = "%s/test_runner_₿_🏃_%s" % (args.tmpdirprefix, datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+--- a/test/util/test_runner.py
++++ b/test/util/test_runner.py
+@@ -38,7 +38,8 @@ def main():
+         level = logging.WARNING
+     formatter = '%(asctime)s - %(levelname)s - %(message)s'
+     # Add the format/level to the logger
+-    logging.basicConfig(format=formatter, level=level)
++    # Log to stdout instead of stderr.  Otherwise, the successful test output is interpreted as an error by autopkgtest.
++    logging.basicConfig(stream=sys.stdout, format=formatter, level=level)
+ 
+     bctester(os.path.join(env_conf["SRCDIR"], "test", "util", "data"), "bitcoin-util-test.json", env_conf, config['components'])
+ 

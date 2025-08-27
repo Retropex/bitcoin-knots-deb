@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# Exit on error.
+set -e
+
+# Copy the config file to the expected location.
+cp debian/tests/config.ini test/
+
+# Copy the bitcoin executables to the expected location.
+cp /usr/bin/bitcoin-util src/
+cp /usr/bin/bitcoin-tx src/
+
+# Run the util tests.
+test/util/test_runner.py -v

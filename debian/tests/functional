@@ -14,5 +14,5 @@ if [ -f "/usr/bin/systemctl" ]; then
     fi
 fi
 
-# Run the upstream tests.
-test/functional/test_runner.py --extended
+# Run the upstream tests, up to 16 at a time.
+test/functional/test_runner.py --extended --jobs=16
