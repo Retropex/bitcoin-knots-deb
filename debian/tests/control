@@ -2,3 +2,7 @@ Tests: functional
 Depends: @,
          python3-zmq
 Restrictions: needs-root
+
+Tests: util
+Depends: @,
+         python3
