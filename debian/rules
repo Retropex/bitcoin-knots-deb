@@ -11,6 +11,9 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all,-fortify
 # code works with -D_FORTIFY_SOURCE=3.
 export DEB_CPPFLAGS_MAINT_APPEND = -D_FORTIFY_SOURCE=3
 
+# Ensure -fstack-clash-protection is used on all architectures.
+# Enable -fcf-protection only on amd64, as it's the only architecture
+# that supports it.
 ifeq ($(shell dpkg --print-architecture),amd64)
   export DEB_CXXFLAGS_MAINT_APPEND = -fcf-protection
   export DEB_CFLAGS_MAINT_APPEND = -fstack-clash-protection -fcf-protection
