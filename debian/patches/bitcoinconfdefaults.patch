@@ -1,0 +1,29 @@
+--- a/share/examples/bitcoin.conf
++++ b/share/examples/bitcoin.conf
+@@ -84,7 +84,7 @@
+ #daemonwait=1
+ 
+ # Specify data directory
+-#datadir=<dir>
++datadir=/var/lib/bitcoin/
+ 
+ # Maximum database cache size <n> MiB (4 to 1048576, default: 450). In
+ # addition, unused mempool memory is shared for this cache (see
+@@ -181,7 +181,7 @@
+ 
+ # Maintain a full transaction index, used by the getrawtransaction rpc
+ # call (default: 0)
+-#txindex=1
++txindex=1
+ 
+ # Print version and exit
+ #version=1
+@@ -799,7 +799,7 @@
+ #rpcwhitelistdefault=1
+ 
+ # Accept command line and JSON-RPC commands
+-#server=1
++server=1
+ 
+ 
+ ### Statistic options
