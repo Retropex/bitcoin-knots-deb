@@ -3,7 +3,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <config/bitcoin-config.h> // IWYU pragma: keep
+#include <bitcoin-build-config.h> // IWYU pragma: keep
 
 #include <rpc/server.h>
 
@@ -12,6 +12,7 @@
 #include <httprpc.h>
 #include <logging.h>
 #include <node/context.h>
+#include <node/kernel_notifications.h>
 #include <rpc/request.h>
 #include <rpc/server_util.h>
 #include <rpc/util.h>
@@ -21,13 +22,12 @@
 #include <util/strencodings.h>
 #include <util/string.h>
 #include <util/time.h>
+#include <validation.h>
 
 #ifdef ENABLE_WALLET
 #include <interfaces/wallet.h>
 #include <wallet/wallet.h>
 #endif
-
-#include <boost/signals2/signal.hpp>
 
 #include <cassert>
 #include <chrono>
@@ -76,22 +76,6 @@ struct RPCCommandExecution
         g_rpc_server_info.active_commands.erase(it);
     }
 };
-
-static struct CRPCSignals
-{
-    boost::signals2::signal<void ()> Started;
-    boost::signals2::signal<void ()> Stopped;
-} g_rpcSignals;
-
-void RPCServer::OnStarted(std::function<void ()> slot)
-{
-    g_rpcSignals.Started.connect(slot);
-}
-
-void RPCServer::OnStopped(std::function<void ()> slot)
-{
-    g_rpcSignals.Stopped.connect(slot);
-}
 
 std::string CRPCTable::help(const std::string& strCommand, const JSONRPCRequest& helpreq) const
 {
@@ -178,12 +162,12 @@ static RPCHelpMan help()
 
 static RPCHelpMan stop()
 {
-    static const std::string RESULT{PACKAGE_NAME " stopping"};
+    static const std::string RESULT{CLIENT_NAME " stopping"};
     return RPCHelpMan{"stop",
     // Also accept the hidden 'wait' integer argument (milliseconds)
     // For instance, 'stop 1000' makes the call wait 1 second before returning
     // to the client (intended for testing)
-                "\nRequest a graceful shutdown of " PACKAGE_NAME ".",
+                "\nRequest a graceful shutdown of " CLIENT_NAME ".",
                 {
                     {"wait", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "how long to wait in ms", RPCArgOptions{.hidden=true}},
                 },
@@ -193,7 +177,7 @@ static RPCHelpMan stop()
 {
     // Event loop will exit after current HTTP requests have been handled, so
     // this reply will get back to the client.
-    CHECK_NONFATAL((*CHECK_NONFATAL(EnsureAnyNodeContext(jsonRequest.context).shutdown))());
+    CHECK_NONFATAL((CHECK_NONFATAL(EnsureAnyNodeContext(jsonRequest.context).shutdown_request))());
     if (jsonRequest.params[0].isNum()) {
         UninterruptibleSleep(std::chrono::milliseconds{jsonRequest.params[0].getInt<int>()});
     }
@@ -364,9 +348,8 @@ bool CRPCTable::removeCommand(const std::string& name, const CRPCCommand* pcmd)
 
 void StartRPC()
 {
-    LogPrint(BCLog::RPC, "Starting RPC\n");
+    LogDebug(BCLog::RPC, "Starting RPC\n");
     g_rpc_running = true;
-    g_rpcSignals.Started();
 }
 
 void InterruptRPC()
@@ -374,7 +357,7 @@ void InterruptRPC()
     static std::once_flag g_rpc_interrupt_flag;
     // This function could be called twice if the GUI has been started with -server=1.
     std::call_once(g_rpc_interrupt_flag, []() {
-        LogPrint(BCLog::RPC, "Interrupting RPC\n");
+        LogDebug(BCLog::RPC, "Interrupting RPC\n");
         // Interrupt e.g. running longpolls
         g_rpc_running = false;
     });
@@ -385,11 +368,11 @@ void StopRPC()
     static std::once_flag g_rpc_stop_flag;
     // This function could be called twice if the GUI has been started with -server=1.
     assert(!g_rpc_running);
-    std::call_once(g_rpc_stop_flag, []() {
-        LogPrint(BCLog::RPC, "Stopping RPC\n");
+    std::call_once(g_rpc_stop_flag, [&]() {
+        LogDebug(BCLog::RPC, "Stopping RPC\n");
         WITH_LOCK(g_deadline_timers_mutex, deadlineTimers.clear());
         DeleteAuthCookie();
-        g_rpcSignals.Stopped();
+        LogDebug(BCLog::RPC, "RPC stopped.\n");
     });
 }
 
@@ -479,6 +462,13 @@ static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, c
     int hole = 0;
     int initial_hole_size = 0;
     const std::string* initial_param = nullptr;
+    auto positional_args{argsIn.extract("args")};
+    if (!positional_args) {
+        // nothing to do
+    } else if (!positional_args.mapped()->isArray()) {
+        argsIn.insert(std::move(positional_args));
+        positional_args = {};
+    }
     UniValue options{UniValue::VOBJ};
     for (const auto& [argNamePattern, named_only]: argNames) {
         std::vector<std::string> vargNames = SplitString(argNamePattern, '|');
@@ -494,6 +484,14 @@ static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, c
         // object, and then pushing the accumulated options as the next
         // positional argument.
         if (named_only) {
+            if (options.empty()) {
+                if (options.isNull()) continue;
+                if (positional_args && positional_args.mapped()->size() > (size_t)hole) {
+                    // some alternative to options is specified positionally; we can't use options at all
+                    options = UniValue::VNULL;
+                    continue;
+                }
+            }
             if (fr != argsIn.end()) {
                 if (options.exists(fr->first)) {
                     throw JSONRPCError(RPC_INVALID_PARAMETER, "Parameter " + fr->first + " specified multiple times");
@@ -537,8 +535,7 @@ static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, c
     // arguments and add named arguments after. This is a convenience for
     // clients that want to pass a combination of named and positional
     // arguments as described in doc/JSON-RPC-interface.md#parameter-passing
-    auto positional_args{argsIn.extract("args")};
-    if (positional_args && positional_args.mapped()->isArray()) {
+    if (positional_args) {
         if (initial_hole_size < (int)positional_args.mapped()->size() && initial_param) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Parameter " + *initial_param + " specified twice both as positional and named argument");
         }
@@ -551,6 +548,9 @@ static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, c
     }
     // If there are still arguments in the argsIn map, this is an error.
     if (!argsIn.empty()) {
+        if (options.isNull()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot specify both 'options' and named parameter " + argsIn.begin()->first);
+        }
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown named parameter " + argsIn.begin()->first);
     }
     // Return request with named arguments transformed to positional arguments
@@ -657,7 +657,7 @@ void RPCRunLater(const std::string& name, std::function<void()> func, int64_t nS
         throw JSONRPCError(RPC_INTERNAL_ERROR, "No timer handler registered for RPC");
     LOCK(g_deadline_timers_mutex);
     deadlineTimers.erase(name);
-    LogPrint(BCLog::RPC, "queue run of timer %s in %i seconds (using %s)\n", name, nSeconds, timerInterface->Name());
+    LogDebug(BCLog::RPC, "queue run of timer %s in %i seconds (using %s)\n", name, nSeconds, timerInterface->Name());
     deadlineTimers.emplace(name, std::unique_ptr<RPCTimerBase>(timerInterface->NewTimer(func, nSeconds*1000)));
 }
 

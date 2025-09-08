@@ -39,13 +39,36 @@ class MerkleBlockTest(BitcoinTestFramework):
         blockhash = self.nodes[0].getblockhash(chain_height + 1)
 
         txlist = []
-        blocktxn = self.nodes[0].getblock(blockhash, True)["tx"]
-        txlist.append(blocktxn[1])
-        txlist.append(blocktxn[2])
+        blocktxn = self.nodes[0].getblock(blockhash, 2)["tx"]
+        txlist.append(blocktxn[1]['txid'])
+        txlist.append(blocktxn[2]['txid'])
 
         assert_equal(self.nodes[0].verifytxoutproof(self.nodes[0].gettxoutproof([txid1])), [txid1])
         assert_equal(self.nodes[0].verifytxoutproof(self.nodes[0].gettxoutproof([txid1, txid2])), txlist)
         assert_equal(self.nodes[0].verifytxoutproof(self.nodes[0].gettxoutproof([txid1, txid2], blockhash)), txlist)
+
+        chain_height += 1
+        expected_proven = {
+            'blockhash': blockhash,
+            'blockheight': chain_height,
+            'tx': [
+                {
+                    'txid': blocktxn[1]['txid'],
+                    'wtxid': blocktxn[1]['hash'],
+                    'blockindex': 1,
+                }, {
+                    'txid': blocktxn[2]['txid'],
+                    'wtxid': blocktxn[2]['hash'],
+                    'blockindex': 2,
+                },
+            ],
+        }
+        proofres = self.nodes[0].gettxoutproof([txid1, txid2], prove_witness=True)
+        assert_equal(proofres['proven'], expected_proven)
+        expected_proven['confirmations'] = 1
+        del expected_proven['tx'][0]['txid']
+        del expected_proven['tx'][1]['txid']
+        assert_equal(self.nodes[0].verifytxoutproof(proofres['proof'], verify_witness=True), expected_proven)
 
         txin_spent = miniwallet.get_utxo(txid=txid2)  # Get the change from txid2
         tx3 = miniwallet.send_self_transfer(from_node=self.nodes[0], utxo_to_spend=txin_spent)
@@ -67,6 +90,10 @@ class MerkleBlockTest(BitcoinTestFramework):
         assert_equal(self.nodes[0].verifytxoutproof(self.nodes[0].gettxoutproof([txid_spent], blockhash)), [txid_spent])
         # We can't get the proof if we specify a non-existent block
         assert_raises_rpc_error(-5, "Block not found", self.nodes[0].gettxoutproof, [txid_spent], "0000000000000000000000000000000000000000000000000000000000000000")
+        # We can't get the proof if we only have the header of the specified block
+        block = self.generateblock(self.nodes[0], output="raw(55)", transactions=[], submit=False)
+        self.nodes[0].submitheader(block["hex"])
+        assert_raises_rpc_error(-1, "Block not available (not fully downloaded)", self.nodes[0].gettxoutproof, [txid_spent], block['hash'])
         # We can get the proof if the transaction is unspent
         assert_equal(self.nodes[0].verifytxoutproof(self.nodes[0].gettxoutproof([txid_unspent])), [txid_unspent])
         # We can get the proof if we provide a list of transactions and one of them is unspent. The ordering of the list should not matter.

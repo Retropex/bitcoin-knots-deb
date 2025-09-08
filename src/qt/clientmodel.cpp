@@ -2,7 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <config/bitcoin-config.h> // IWYU pragma: keep
+#include <bitcoin-build-config.h> // IWYU pragma: keep
 
 #include <qt/clientmodel.h>
 
@@ -322,12 +322,12 @@ bool ClientModel::getTorInfo(QString& out_onion) const
 mempoolSamples_t ClientModel::getMempoolStatsInRange(QDateTime &from, QDateTime &to)
 {
     // get stats from the core stats model
-    uint64_t timeFrom = from.toTime_t();
-    uint64_t timeTo = to.toTime_t();
+    uint64_t timeFrom = from.toSecsSinceEpoch();
+    uint64_t timeTo = to.toSecsSinceEpoch();
 
     mempoolSamples_t samples = CStats::DefaultStats()->mempoolGetValuesInRange(timeFrom,timeTo);
-    from.setTime_t(timeFrom);
-    to.setTime_t(timeTo);
+    from.setSecsSinceEpoch(timeFrom);
+    to.setSecsSinceEpoch(timeTo);
     return samples;
 }
 

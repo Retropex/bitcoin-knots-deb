@@ -29,6 +29,7 @@
 #include <memory>
 #include <optional>
 #include <set>
+#include <span>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -79,8 +80,11 @@ static const unsigned int UNDOFILE_CHUNK_SIZE = 0x100000; // 1 MiB
 /** The maximum size of a blk?????.dat file (since 0.8) */
 static const unsigned int MAX_BLOCKFILE_SIZE = 0x8000000; // 128 MiB
 
-/** Size of header written by WriteBlockToDisk before a serialized CBlock */
-static constexpr size_t BLOCK_SERIALIZATION_HEADER_SIZE = std::tuple_size_v<MessageStartChars> + sizeof(unsigned int);
+/** Size of header written by WriteBlock before a serialized CBlock (8 bytes) */
+static constexpr uint32_t BLOCK_SERIALIZATION_HEADER_SIZE{std::tuple_size_v<MessageStartChars> + sizeof(unsigned int)};
+
+/** Total overhead when writing undo data: header (8 bytes) plus checksum (32 bytes) */
+static constexpr uint32_t UNDO_DATA_DISK_OVERHEAD{BLOCK_SERIALIZATION_HEADER_SIZE + uint256::size()};
 
 // Because validation code takes pointers to the map's CBlockIndex objects, if
 // we ever switch to another associative container, we need to either use a
@@ -176,22 +180,13 @@ private:
      * blockfile info, and checks if there is enough disk space to save the block.
      *
      * The nAddSize argument passed to this function should include not just the size of the serialized CBlock, but also the size of
-     * separator fields which are written before it by WriteBlockToDisk (BLOCK_SERIALIZATION_HEADER_SIZE).
+     * separator fields (BLOCK_SERIALIZATION_HEADER_SIZE).
      */
     [[nodiscard]] FlatFilePos FindNextBlockPos(unsigned int nAddSize, unsigned int nHeight, uint64_t nTime);
     [[nodiscard]] bool FlushChainstateBlockFile(int tip_height);
     bool FindUndoPos(BlockValidationState& state, int nFile, FlatFilePos& pos, unsigned int nAddSize);
 
     AutoFile OpenUndoFile(const FlatFilePos& pos, bool fReadOnly = false) const;
-
-    /**
-     * Write a block to disk. The pos argument passed to this function is modified by this call. Before this call, it should
-     * point to an unused file location where separator fields will be written, followed by the serialized CBlock data.
-     * After this call, it will point to the beginning of the serialized CBlock data, after the separator fields
-     * (BLOCK_SERIALIZATION_HEADER_SIZE)
-     */
-    bool WriteBlockToDisk(const CBlock& block, FlatFilePos& pos) const;
-    bool UndoWriteToDisk(const CBlockUndo& blockundo, FlatFilePos& pos, const uint256& hashBlock) const;
 
     bool DoPruneLocksForbidPruning(const CBlockFileInfo& block_file_info) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
@@ -350,7 +345,7 @@ public:
     /** Get block file info entry for one block file */
     CBlockFileInfo* GetBlockFileInfo(size_t n);
 
-    bool WriteUndoDataForBlock(const CBlockUndo& blockundo, BlockValidationState& state, CBlockIndex& block)
+    bool WriteBlockUndo(const CBlockUndo& blockundo, BlockValidationState& state, CBlockIndex& block)
         EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
     /** Store block on disk and update block file statistics.
@@ -361,14 +356,13 @@ public:
      * @returns in case of success, the position to which the block was written to
      *          in case of an error, an empty FlatFilePos
      */
-    FlatFilePos SaveBlockToDisk(const CBlock& block, int nHeight);
+    FlatFilePos WriteBlock(const CBlock& block, int nHeight);
 
     /** Update blockfile info while processing a block during reindex. The block must be available on disk.
      *
      * @param[in]  block        the block being processed
      * @param[in]  nHeight      the height of the block
-     * @param[in]  pos          the position of the serialized CBlock on disk. This is the position returned
-     *                          by WriteBlockToDisk pointing at the CBlock, not the separator fields before it
+     * @param[in]  pos          the position of the serialized CBlock on disk
      */
     void UpdateBlockInfo(const CBlock& block, unsigned int nHeight, const FlatFilePos& pos);
 
@@ -433,7 +427,7 @@ public:
     bool DeletePruneLock(const std::string& name) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
     /** Open a block file (blk?????.dat) */
-    AutoFile OpenBlockFile(const FlatFilePos& pos, bool fReadOnly = false) const;
+    AutoFile OpenBlockFile(const FlatFilePos& pos, bool fReadOnly) const;
 
     /** Translation to a filesystem path */
     fs::path GetBlockPosFilename(const FlatFilePos& pos) const;
@@ -444,16 +438,17 @@ public:
     void UnlinkPrunedFiles(const std::set<int>& setFilesToPrune) const;
 
     /** Functions for disk access for blocks */
-    bool ReadBlockFromDisk(CBlock& block, const FlatFilePos& pos, bool lowprio = false) const;
-    bool ReadBlockFromDisk(CBlock& block, const CBlockIndex& index, bool lowprio = false) const;
-    bool ReadRawBlockFromDisk(std::vector<uint8_t>& block, const FlatFilePos& pos, bool lowprio = false) const;
+    bool ReadBlock(CBlock& block, const FlatFilePos& pos, const std::optional<uint256>& expected_hash = {}, bool lowprio = false) const;
+    bool ReadBlock(CBlock& block, const CBlockIndex& index, bool lowprio = false) const;
+    bool ReadRawBlock(std::vector<uint8_t>& block, const FlatFilePos& pos, bool lowprio = false) const;
 
-    bool UndoReadFromDisk(CBlockUndo& blockundo, const CBlockIndex& index) const;
+    bool ReadBlockUndo(CBlockUndo& blockundo, const CBlockIndex& index) const;
 
     void CleanupBlockRevFiles() const;
 };
 
-void ImportBlocks(ChainstateManager& chainman, std::vector<fs::path> vImportFiles);
+// Calls ActivateBestChain() even if no blocks are imported.
+void ImportBlocks(ChainstateManager& chainman, std::span<const fs::path> import_paths);
 } // namespace node
 
 #endif // BITCOIN_NODE_BLOCKSTORAGE_H

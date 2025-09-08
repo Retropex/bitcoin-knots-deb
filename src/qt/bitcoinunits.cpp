@@ -3,10 +3,13 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <qt/bitcoinunits.h>
+#include <qt/guiutil.h>
 #include <qt/tonalutils.h>
 
 #include <consensus/amount.h>
 
+#include <QFont>
+#include <QRegularExpression>
 #include <QStringList>
 
 #include <cassert>
@@ -22,17 +25,13 @@ BitcoinUnits::BitcoinUnits(QObject *parent):
 
 QList<BitcoinUnit> BitcoinUnits::availableUnits()
 {
-    QList<BitcoinUnit> unitlist;
+    static QList<BitcoinUnit> unitlist;
+    if (!unitlist.isEmpty()) return unitlist;
     unitlist.append(Unit::BTC);
     unitlist.append(Unit::mBTC);
     unitlist.append(Unit::uBTC);
     unitlist.append(Unit::SAT);
-    if (TonalUtils::Supported())
-    {
-        unitlist.append(Unit::bTBC);
-        unitlist.append(Unit::sTBC);
-        unitlist.append(Unit::TBC);
-    }
+    unitlist.append(Unit::TBC);
     return unitlist;
 }
 
@@ -188,7 +187,7 @@ QString BitcoinUnits::format(Unit unit, const CAmount& nIn, bool fPlus, Separato
     case Unit::TBC:
     {
         // Right-trim excess zeros after the decimal point
-        static const QRegExp tail_zeros("0+$");
+        static const QRegularExpression tail_zeros("0+$");
         remainder_str.remove(tail_zeros);
         TonalUtils::ConvertFromHex(quotient_str);
         TonalUtils::ConvertFromHex(remainder_str);
@@ -221,11 +220,11 @@ QString BitcoinUnits::formatWithUnit(Unit unit, const CAmount& amount, bool plus
     return format(unit, amount, plussign, separators) + QString(" ") + shortName(unit);
 }
 
-QString BitcoinUnits::formatHtmlWithUnit(Unit unit, const CAmount& amount, bool plussign, SeparatorStyle separators)
+QString BitcoinUnits::formatHtmlWithUnit(const QFont& font, Unit unit, const CAmount& amount, bool plussign, SeparatorStyle separators)
 {
     QString str(formatWithUnit(unit, amount, plussign, separators));
     str.replace(QChar(THIN_SP_CP), QString(THIN_SP_HTML));
-    return QString("<span style='white-space: nowrap;'>%1</span>").arg(str);
+    return QString("<span style='white-space:nowrap;%2'>%1</span>").arg(str).arg(GUIUtil::fontToCss(font));
 }
 
 QString BitcoinUnits::formatWithPrivacy(Unit unit, const CAmount& amount, SeparatorStyle separators, bool privacy)
@@ -237,7 +236,9 @@ QString BitcoinUnits::formatWithPrivacy(Unit unit, const CAmount& amount, Separa
     } else {
         value = format(unit, amount, false, separators, true);
     }
-    return value + QString(" ") + shortName(unit);
+    value += QString(" ") + shortName(unit);
+    value.replace(QChar(THIN_SP_CP), QString(THIN_SP_HTML));
+    return QString("<span style='white-space: nowrap;'>%1</span>").arg(value);
 }
 
 bool BitcoinUnits::parse(Unit unit, const QString& value, CAmount* val_out)

@@ -3,8 +3,8 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 //! @file node/types.h is a home for public enum and struct type definitions
-//! that are used by internally by node code, but also used externally by wallet
-//! or GUI code.
+//! that are used internally by node code, but also used externally by wallet,
+//! mining or GUI code.
 //!
 //! This file is intended to define only simple types that do not have external
 //! dependencies. More complicated types should be defined in dedicated header
@@ -17,6 +17,8 @@
 #include <policy/policy.h>
 
 #include <cstddef>
+#include <policy/policy.h>
+#include <script/script.h>
 
 namespace node {
 enum class TransactionError {
@@ -38,22 +40,36 @@ struct BlockCreateOptions {
      */
     bool use_mempool{true};
     /**
-     * The maximum additional size which the miner will add to the coinbase
-     * scriptSig, witness and outputs. This must include any additional
-     * size needed for larger CompactSize encoded lengths.
+     * The default reserved size for the fixed-size block header,
+     * transaction count and coinbase transaction.
      */
-    size_t coinbase_max_additional_size{1000};
+    size_t block_reserved_size{DEFAULT_BLOCK_RESERVED_SIZE};
     /**
-     * The maximum additional weight which the pool will add to the coinbase
-     * scriptSig, witness and outputs. This must include any additional
-     * weight needed for larger CompactSize encoded lengths.
+     * The default reserved weight for the fixed-size block header,
+     * transaction count and coinbase transaction.
      */
-    size_t coinbase_max_additional_weight{4000};
+    size_t block_reserved_weight{DEFAULT_BLOCK_RESERVED_WEIGHT};
     /**
      * The maximum additional sigops which the pool will add in coinbase
      * transaction outputs.
      */
     size_t coinbase_output_max_additional_sigops{400};
+    /**
+     * Script to put in the coinbase transaction. The default is an
+     * anyone-can-spend dummy.
+     *
+     * Should only be used for tests, when the default doesn't suffice.
+     *
+     * Note that higher level code like the getblocktemplate RPC may omit the
+     * coinbase transaction entirely. It's instead constructed by pool software
+     * using fields like coinbasevalue, coinbaseaux and default_witness_commitment.
+     * This software typically also controls the payout outputs, even for solo
+     * mining.
+     *
+     * The size and sigops are not checked against
+     * coinbase_max_additional_weight and coinbase_output_max_additional_sigops.
+     */
+    CScript coinbase_output_script{CScript() << OP_TRUE};
 
     // Configuration parameters for the block size
     size_t nBlockMaxWeight{DEFAULT_BLOCK_MAX_WEIGHT};

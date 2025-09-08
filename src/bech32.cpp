@@ -368,7 +368,7 @@ std::string Encode(const std::string& hrp, const data& values, const data& check
     std::string ret;
     ret.reserve(hrp.size() + 1 + values.size() + CHECKSUM_SIZE);
     ret += hrp;
-    ret += '1';
+    ret += SEPARATOR;
     for (const uint8_t& i : values) ret += CHARSET[i];
     for (const uint8_t& i : checksum) ret += CHARSET[i];
     return ret;
@@ -378,7 +378,7 @@ std::string Encode(const std::string& hrp, const data& values, const data& check
 std::pair<std::string, data> Decode(const std::string& str, CharLimit limit, size_t checksum_length) {
     std::vector<int> errors;
     if (!CheckCharacters(str, errors)) return {};
-    size_t pos = str.rfind('1');
+    size_t pos = str.rfind(SEPARATOR);
     if (str.size() > limit) return {};
     if (pos == str.npos || pos == 0 || pos + checksum_length >= str.size()) {
         return {};
@@ -430,7 +430,7 @@ std::pair<std::string, std::vector<int>> LocateErrors(const std::string& str, Ch
         return std::make_pair("Invalid character or mixed case", std::move(error_locations));
     }
 
-    size_t pos = str.rfind('1');
+    size_t pos = str.rfind(SEPARATOR);
     if (pos == str.npos) {
         return std::make_pair("Missing separator", std::vector<int>{});
     }

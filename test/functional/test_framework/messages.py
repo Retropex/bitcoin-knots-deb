@@ -33,6 +33,8 @@ from test_framework.util import assert_equal
 
 MAX_LOCATOR_SZ = 101
 MAX_BLOCK_WEIGHT = 4000000
+DEFAULT_BLOCK_RESERVED_WEIGHT = 8000
+MINIMUM_BLOCK_RESERVED_WEIGHT = 2000
 MAX_BLOOM_FILTER_SIZE = 36000
 MAX_BLOOM_HASH_FUNCS = 50
 
@@ -40,6 +42,7 @@ COIN = 100000000  # 1 btc in satoshis
 MAX_MONEY = 21000000 * COIN
 
 MAX_BIP125_RBF_SEQUENCE = 0xfffffffd  # Sequence number that is rbf-opt-in (BIP 125) and csv-opt-out (BIP 68)
+MAX_SEQUENCE_NONFINAL = 0xfffffffe  # Sequence number that is csv-opt-out (BIP 68)
 SEQUENCE_FINAL = 0xffffffff  # Sequence number that disables nLockTime if set for every input of a tx
 
 MAX_PROTOCOL_MESSAGE_LENGTH = 4000000  # Maximum length of incoming protocol messages
@@ -206,6 +209,11 @@ def ser_string_vector(l):
     return r
 
 
+def deser_block_spent_outputs(f):
+    nit = deser_compact_size(f)
+    return [deser_vector(f, CTxOut) for _ in range(nit)]
+
+
 def from_hex(obj, hex_string):
     """Deserialize from a hex string representation (e.g. from RPC)
 
@@ -328,7 +336,7 @@ class CAddress:
         elif self.net == self.NET_CJDNS:
             self.ip = socket.inet_ntop(socket.AF_INET6, addr_bytes)
         else:
-            raise Exception(f"Address type not supported")
+            raise Exception("Address type not supported")
 
         self.port = int.from_bytes(f.read(2), "big")
 
@@ -355,7 +363,7 @@ class CAddress:
         elif self.net == self.NET_CJDNS:
             r += socket.inet_pton(socket.AF_INET6, self.ip)
         else:
-            raise Exception(f"Address type not supported")
+            raise Exception("Address type not supported")
         r += self.port.to_bytes(2, "big")
         return r
 
@@ -1357,7 +1365,7 @@ class msg_block:
 # for cases where a user needs tighter control over what is sent over the wire
 # note that the user must supply the name of the msgtype, and the data
 class msg_generic:
-    __slots__ = ("data")
+    __slots__ = ("msgtype", "data")
 
     def __init__(self, msgtype, data=None):
         self.msgtype = msgtype

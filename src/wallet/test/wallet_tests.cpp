@@ -10,7 +10,6 @@
 #include <vector>
 
 #include <addresstype.h>
-#include <common/system.h>
 #include <interfaces/chain.h>
 #include <key_io.h>
 #include <node/blockstorage.h>
@@ -20,6 +19,7 @@
 #include <test/util/logging.h>
 #include <test/util/random.h>
 #include <test/util/setup_common.h>
+#include <util/mempressure.h>
 #include <util/translation.h>
 #include <validation.h>
 #include <validationinterface.h>
@@ -66,10 +66,30 @@ static void AddKey(CWallet& wallet, const CKey& key)
     LOCK(wallet.cs_wallet);
     FlatSigningProvider provider;
     std::string error;
-    std::unique_ptr<Descriptor> desc = Parse("combo(" + EncodeSecret(key) + ")", provider, error, /* require_checksum=*/ false);
-    assert(desc);
+    auto descs = Parse("combo(" + EncodeSecret(key) + ")", provider, error, /* require_checksum=*/ false);
+    assert(descs.size() == 1);
+    auto& desc = descs.at(0);
     WalletDescriptor w_desc(std::move(desc), 0, 0, 1, 1);
     if (!wallet.AddWalletDescriptor(w_desc, provider, "", false)) assert(false);
+}
+
+BOOST_FIXTURE_TEST_CASE(update_non_range_descriptor, TestingSetup)
+{
+    CWallet wallet(m_node.chain.get(), "", CreateMockableWalletDatabase());
+    {
+        LOCK(wallet.cs_wallet);
+        wallet.SetWalletFlag(WALLET_FLAG_DESCRIPTORS);
+        auto key{GenerateRandomKey()};
+        auto desc_str{"combo(" + EncodeSecret(key) + ")"};
+        FlatSigningProvider provider;
+        std::string error;
+        auto descs{Parse(desc_str, provider, error, /* require_checksum=*/ false)};
+        auto& desc{descs.at(0)};
+        WalletDescriptor w_desc{std::move(desc), 0, 0, 0, 0};
+        BOOST_CHECK(wallet.AddWalletDescriptor(w_desc, provider, "", false));
+        // Wallet should update the non-range descriptor successfully
+        BOOST_CHECK(wallet.AddWalletDescriptor(w_desc, provider, "", false));
+    }
 }
 
 BOOST_FIXTURE_TEST_CASE(scan_for_wallet_transactions, TestChain100Setup)
@@ -337,12 +357,11 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
 // concurrently, ensuring no race conditions occur during either process.
 BOOST_FIXTURE_TEST_CASE(write_wallet_settings_concurrently, TestingSetup)
 {
-    WalletContext context;
-    context.chain = m_node.chain.get();
+    auto chain = m_node.chain.get();
     const auto NUM_WALLETS{5};
 
     // Since we're counting the number of wallets, ensure we start without any.
-    BOOST_REQUIRE(context.chain->getRwSetting("wallet").isNull());
+    BOOST_REQUIRE(chain->getRwSetting("wallet").isNull());
 
     const auto& check_concurrent_wallet = [&](const auto& settings_function, int num_expected_wallets) {
         std::vector<std::thread> threads;
@@ -350,19 +369,19 @@ BOOST_FIXTURE_TEST_CASE(write_wallet_settings_concurrently, TestingSetup)
         for (auto i{0}; i < NUM_WALLETS; ++i) threads.emplace_back(settings_function, i);
         for (auto& t : threads) t.join();
 
-        auto wallets = context.chain->getRwSetting("wallet");
+        auto wallets = chain->getRwSetting("wallet");
         BOOST_CHECK_EQUAL(wallets.getValues().size(), num_expected_wallets);
     };
 
     // Add NUM_WALLETS wallets concurrently, ensure we end up with NUM_WALLETS stored.
-    check_concurrent_wallet([&context](int i) {
-        Assert(AddWalletSetting(*context.chain, strprintf("wallet_%d", i)));
+    check_concurrent_wallet([&chain](int i) {
+        Assert(AddWalletSetting(*chain, strprintf("wallet_%d", i)));
     },
                             /*num_expected_wallets=*/NUM_WALLETS);
 
     // Remove NUM_WALLETS wallets concurrently, ensure we end up with 0 wallets.
-    check_concurrent_wallet([&context](int i) {
-        Assert(RemoveWalletSetting(*context.chain, strprintf("wallet_%d", i)));
+    check_concurrent_wallet([&chain](int i) {
+        Assert(RemoveWalletSetting(*chain, strprintf("wallet_%d", i)));
     },
                             /*num_expected_wallets=*/0);
 }
@@ -986,7 +1005,7 @@ BOOST_FIXTURE_TEST_CASE(wallet_sync_tx_invalid_state_test, TestingSetup)
 
     CMutableTransaction mtx;
     mtx.vout.emplace_back(COIN, GetScriptForDestination(op_dest));
-    mtx.vin.emplace_back(Txid::FromUint256(g_insecure_rand_ctx.rand256()), 0);
+    mtx.vin.emplace_back(Txid::FromUint256(m_rng.rand256()), 0);
     const auto& tx_id_to_spend = wallet.AddToWallet(MakeTransactionRef(mtx), TxStateInMempool{})->GetHash();
 
     {

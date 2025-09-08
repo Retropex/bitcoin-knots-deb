@@ -14,25 +14,21 @@ set -ex
 GIT_ARCHIVE="$1"
 DISTNAME="$2"
 
-git archive --prefix="${DISTNAME}/" HEAD | tar -xp --exclude '*minisketch*' --exclude 'doc/release-notes'
+git archive --prefix="${DISTNAME}/" HEAD |
+ tar -xp \
+  --exclude .cirrus.yml \
+  --exclude '.git*' \
+  --exclude ci \
+  --exclude '*minisketch*' \
+  --exclude 'doc/release-notes' \
+ # end of tar options
 
 # Generate correct build info file from git, before we lose git
-GIT_BUILD_INFO="$(share/genbuild.sh /dev/stdout)"
-sed 's/\/\/ No build information available/'"${GIT_BUILD_INFO}"'/' -i "${DISTNAME}/share/genbuild.sh"
+GIT_BUILD_INFO="$(cmake -P cmake/script/GenerateBuildInfo.cmake)"
+sed 's/\/\/ No build information available/'"${GIT_BUILD_INFO}"'/' -i "${DISTNAME}/cmake/script/GenerateBuildInfo.cmake"
 
-cd "${DISTNAME}"
-
-./autogen.sh
-./configure --prefix=/ --disable-ccache --disable-maintainer-mode --disable-dependency-tracking
-make src_files
-make distclean
-
-cd ..
 tar \
   --format=ustar \
-  --exclude autom4te.cache \
-  --exclude .deps \
-  --exclude .git \
   --sort=name \
   --mode='u+rw,go+r-w,a+X' --owner=0 --group=0 \
   --mtime="${REFERENCE_DATETIME}" \

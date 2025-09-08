@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
+#include <memusage.h>
 #include <span.h>
 #include <streams.h>
 #include <util/fs_helpers.h>
@@ -85,22 +86,31 @@ void AutoFile::write(Span<const std::byte> src)
         if (std::fwrite(src.data(), 1, src.size(), m_file) != src.size()) {
             throw std::ios_base::failure("AutoFile::write: write failed");
         }
+        m_was_written = true;
         if (m_position.has_value()) *m_position += src.size();
     } else {
-        if (!m_position.has_value()) throw std::ios_base::failure("AutoFile::write: position unknown");
         std::array<std::byte, 4096> buf;
         while (src.size() > 0) {
             auto buf_now{Span{buf}.first(std::min<size_t>(src.size(), buf.size()))};
-            std::copy(src.begin(), src.begin() + buf_now.size(), buf_now.begin());
-            util::Xor(buf_now, m_xor, *m_position);
-            if (std::fwrite(buf_now.data(), 1, buf_now.size(), m_file) != buf_now.size()) {
-                throw std::ios_base::failure{"XorFile::write: failed"};
-            }
+            std::copy_n(src.begin(), buf_now.size(), buf_now.begin());
+            write_buffer(buf_now);
             src = src.subspan(buf_now.size());
-            *m_position += buf_now.size();
         }
     }
+}
+
+void AutoFile::write_buffer(std::span<std::byte> src)
+{
+    if (!m_file) throw std::ios_base::failure("AutoFile::write_buffer: file handle is nullptr");
+    if (m_xor.size()) {
+        if (!m_position) throw std::ios_base::failure("AutoFile::write_buffer: obfuscation position unknown");
+        util::Xor(src, m_xor, *m_position); // obfuscate in-place
+        }
+    if (std::fwrite(src.data(), 1, src.size(), m_file) != src.size()) {
+        throw std::ios_base::failure("AutoFile::write_buffer: write failed");
+    }
     m_was_written = true;
+    if (m_position) *m_position += src.size();
 }
 
 bool AutoFile::Commit()
@@ -113,12 +123,13 @@ void AutoFile::SetIdlePriority()
     ioprio_set_file_idle(m_file);
 }
 
-bool AutoFile::IsError()
-{
-    return ferror(m_file);
-}
-
 bool AutoFile::Truncate(unsigned size)
 {
+    m_was_written = true;
     return ::TruncateFile(m_file, size);
+}
+
+size_t DataStream::GetMemoryUsage() const noexcept
+{
+    return sizeof(*this) + memusage::DynamicUsage(vch);
 }

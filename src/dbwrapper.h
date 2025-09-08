@@ -11,6 +11,7 @@
 #include <streams.h>
 #include <util/check.h>
 #include <util/fs.h>
+#include <util/result.h>
 
 #include <cstddef>
 #include <exception>
@@ -20,10 +21,11 @@
 #include <string>
 #include <vector>
 
-bool dbwrapper_SanityCheck();
+util::Result<void> dbwrapper_SanityCheck();
 
 static const size_t DBWRAPPER_PREALLOC_KEY_SIZE = 64;
 static const size_t DBWRAPPER_PREALLOC_VALUE_SIZE = 1024;
+static const size_t DBWRAPPER_MAX_FILE_SIZE = 32 << 20; // 32 MiB
 
 static constexpr size_t DEFAULT_DB_FILE_SIZE{64};
 
@@ -80,6 +82,8 @@ class CDBBatch
     friend class CDBWrapper;
 
 private:
+    static constexpr size_t kHeader{12}; // See: src/leveldb/db/write_batch.cc#L27
+
     const CDBWrapper &parent;
 
     struct WriteBatchImpl;

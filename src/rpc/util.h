@@ -534,8 +534,6 @@ private:
     size_t GetParamIndex(std::string_view key) const;
 };
 
-std::vector<RPCResult> ScriptPubKeyDoc();
-
 /**
  * Push warning messages to an RPC "warnings" field as a JSON array of strings.
  *
@@ -547,5 +545,17 @@ void PushWarnings(const std::vector<bilingual_str>& warnings, UniValue& obj);
 
 bool GetWalletRestrictionFromJSONRPCRequest(const JSONRPCRequest& request, std::string& out_wallet_allowed);
 void EnsureNotWalletRestricted(const JSONRPCRequest& request);
+
+std::vector<RPCResult> ScriptPubKeyDoc();
+
+/***
+ * Get the target for a given block index.
+ *
+ * @param[in] blockindex    the block
+ * @param[in] pow_limit     PoW limit (consensus parameter)
+ *
+ * @return  the target
+ */
+uint256 GetTarget(const CBlockIndex& blockindex, const uint256 pow_limit);
 
 #endif // BITCOIN_RPC_UTIL_H

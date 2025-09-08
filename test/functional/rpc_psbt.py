@@ -79,7 +79,7 @@ class PSBTTest(BitcoinTestFramework):
         wallet = node.get_wallet_rpc(self.default_wallet_name)
         address = wallet.getnewaddress()
         wallet.sendtoaddress(address=address, amount=1.0)
-        self.generate(node, nblocks=1, sync_fun=lambda: self.sync_all(self.nodes[:2]))
+        self.generate(node, nblocks=1)
 
         utxos = wallet.listunspent(addresses=[address])
         psbt = wallet.createpsbt([{"txid": utxos[0]["txid"], "vout": utxos[0]["vout"]}], [{wallet.getnewaddress(): 0.9999}])
@@ -597,7 +597,8 @@ class PSBTTest(BitcoinTestFramework):
         for tx_in, psbt_in in zip(decoded_psbt["tx"]["vin"], decoded_psbt["inputs"]):
             assert_equal(tx_in["sequence"], MAX_BIP125_RBF_SEQUENCE)
             assert "bip32_derivs" in psbt_in
-        assert_equal(decoded_psbt["tx"]["locktime"], 0)
+        # Anti fee sniping
+        assert 0 < decoded_psbt["tx"]["locktime"] <= block_height
 
         # Same construction without optional arguments, for a node with -walletrbf=0
         unspent1 = self.nodes[1].listunspent()[0]

@@ -7,11 +7,11 @@
 
 #include <util/macros.h>
 
-#include <config/bitcoin-config.h> // IWYU pragma: keep
+#include <bitcoin-build-config.h> // IWYU pragma: keep
 
 // Check that required client information is defined
 #if !defined(CLIENT_VERSION_MAJOR) || !defined(CLIENT_VERSION_MINOR) || !defined(CLIENT_VERSION_BUILD) || !defined(CLIENT_VERSION_IS_RELEASE) || !defined(COPYRIGHT_YEAR)
-#error Client version information missing: version is not defined by bitcoin-config.h or in any other way
+#error Client version information missing: version is not defined by bitcoin-build-config.h or in any other way
 #endif
 
 //! Copyright string used in Windows .rc files
@@ -34,7 +34,7 @@ static const int CLIENT_VERSION =
                          +     100 * CLIENT_VERSION_MINOR
                          +       1 * CLIENT_VERSION_BUILD;
 
-extern const std::string CLIENT_NAME;
+extern const std::string UA_NAME;
 
 
 std::string FormatFullVersion();
@@ -45,11 +45,15 @@ std::string CopyrightHolders(const std::string& strPrefix);
 /** Returns licensing information (for -version) */
 std::string LicenseInfo();
 
+static constexpr int64_t SECONDS_PER_WEEK = 604800;
 static constexpr int64_t SECONDS_PER_YEAR = 31558060;
+
 static constexpr int POSIX_EPOCH_YEAR = 1970;
 static constexpr int64_t DEFAULT_SOFTWARE_EXPIRY_OFFSET = 26784000;  // Around Nov 7
 static constexpr int64_t DEFAULT_SOFTWARE_EXPIRY = ((COPYRIGHT_YEAR - POSIX_EPOCH_YEAR) * SECONDS_PER_YEAR) + (SECONDS_PER_YEAR * 2) + DEFAULT_SOFTWARE_EXPIRY_OFFSET;
 extern int64_t g_software_expiry;
+
+static constexpr int64_t SOFTWARE_EXPIRY_WARN_PERIOD = SECONDS_PER_WEEK * 4;
 
 bool IsThisSoftwareExpired(int64_t nTime);
 

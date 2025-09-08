@@ -13,6 +13,7 @@
 #include <node/blockstorage.h>
 #include <undo.h>
 #include <util/fs_helpers.h>
+#include <util/syserror.h>
 #include <validation.h>
 
 /* The index database stores three items for each block: the disk location of the encoded filter,
@@ -112,7 +113,7 @@ BlockFilterIndex::BlockFilterIndex(std::unique_ptr<interfaces::Chain> chain, Blo
     m_filter_fileseq = std::make_unique<FlatFileSeq>(std::move(path), "fltr", FLTR_FILE_CHUNK_SIZE);
 }
 
-bool BlockFilterIndex::CustomInit(const std::optional<interfaces::BlockKey>& block)
+bool BlockFilterIndex::CustomInit(const std::optional<interfaces::BlockRef>& block)
 {
     if (!m_db->Read(DB_FILTER_POS, m_next_filter_pos)) {
         // Check that the cause of the read failure is that the key does not exist. Any other errors
@@ -151,8 +152,13 @@ bool BlockFilterIndex::CustomCommit(CDBBatch& batch)
         LogError("%s: Failed to open filter file %d\n", __func__, pos.nFile);
         return false;
     }
-    if (!file.Commit() || file.fclose() != 0) {
+    if (!file.Commit()) {
         LogError("%s: Failed to commit filter file %d\n", __func__, pos.nFile);
+        (void)file.fclose();
+        return false;
+    }
+    if (file.fclose() != 0) {
+        LogError("Failed to close filter file %d after commit: %s", pos.nFile, SysErrorString(errno));
         return false;
     }
 
@@ -205,8 +211,13 @@ size_t BlockFilterIndex::WriteFilterToDisk(FlatFilePos& pos, const BlockFilter& 
             LogPrintf("%s: Failed to truncate filter file %d\n", __func__, pos.nFile);
             return 0;
         }
-        if (!last_file.Commit() || last_file.fclose() != 0) {
+        if (!last_file.Commit()) {
             LogPrintf("%s: Failed to commit filter file %d\n", __func__, pos.nFile);
+            (void)last_file.fclose();
+            return 0;
+        }
+        if (last_file.fclose() != 0) {
+            LogError("Failed to close filter file %d after commit: %s", pos.nFile, SysErrorString(errno));
             return 0;
         }
 
@@ -231,7 +242,7 @@ size_t BlockFilterIndex::WriteFilterToDisk(FlatFilePos& pos, const BlockFilter& 
     fileout << filter.GetBlockHash() << filter.GetEncodedFilter();
 
     if (fileout.fclose() != 0) {
-        LogPrintf("%s: Failed to close filter file %d\n", __func__, pos.nFile);
+        LogError("Failed to close filter file %d: %s", pos.nFile, SysErrorString(errno));
         return 0;
     }
 
@@ -262,7 +273,7 @@ bool BlockFilterIndex::CustomAppend(const interfaces::BlockInfo& block)
         // pindex variable gives indexing code access to node internals. It
         // will be removed in upcoming commit
         const CBlockIndex* pindex = WITH_LOCK(cs_main, return m_chainstate->m_blockman.LookupBlockIndex(block.hash));
-        if (!m_chainstate->m_blockman.UndoReadFromDisk(block_undo, *pindex)) {
+        if (!m_chainstate->m_blockman.ReadBlockUndo(block_undo, *pindex)) {
             return false;
         }
     }
@@ -322,7 +333,7 @@ bool BlockFilterIndex::Write(const BlockFilter& filter, uint32_t block_height, c
     return true;
 }
 
-bool BlockFilterIndex::CustomRewind(const interfaces::BlockKey& current_tip, const interfaces::BlockKey& new_tip)
+bool BlockFilterIndex::CustomRewind(const interfaces::BlockRef& current_tip, const interfaces::BlockRef& new_tip)
 {
     CDBBatch batch(*m_db);
     std::unique_ptr<CDBIterator> db_it(m_db->NewIterator());

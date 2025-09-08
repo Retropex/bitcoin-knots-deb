@@ -6,7 +6,6 @@
 
 #include <logging.h>
 #include <random.h>
-#include <node/interface_ui.h>
 #include <serialize.h>
 #include <span.h>
 #include <streams.h>
@@ -54,20 +53,19 @@ static void HandleError(const leveldb::Status& status)
     throw dbwrapper_error(errmsg);
 }
 
-bool dbwrapper_SanityCheck()
+util::Result<void> dbwrapper_SanityCheck()
 {
     unsigned long header_version = (leveldb::kMajorVersion << 16) | leveldb::kMinorVersion;
     unsigned long library_version = (leveldb_major_version() << 16) | leveldb_minor_version();
 
     if (header_version != library_version) {
-        InitError(Untranslated(strprintf("Compiled with LevelDB %d.%d, but linked with LevelDB %d.%d (incompatible).",
+        return util::Error{Untranslated(strprintf("Compiled with LevelDB %d.%d, but linked with LevelDB %d.%d (incompatible).",
             leveldb::kMajorVersion, leveldb::kMinorVersion,
             leveldb_major_version(), leveldb_minor_version()
-        )));
-        return false;
+        ))};
     }
 
-    return true;
+    return {};
 }
 
 #ifndef WIN32
@@ -169,7 +167,7 @@ static void SetMaxOpenFiles(leveldb::Options *options) {
         options->max_open_files = 64;
     }
 #endif
-    LogPrint(BCLog::LEVELDB, "LevelDB using max_open_files=%d (default=%d)\n",
+    LogDebug(BCLog::LEVELDB, "LevelDB using max_open_files=%d (default=%d)\n",
              options->max_open_files, default_open_files);
 }
 
@@ -186,6 +184,7 @@ static leveldb::Options GetOptions(size_t nCacheSize)
         // on corruption in later versions.
         options.paranoid_checks = true;
     }
+    options.max_file_size = std::max(options.max_file_size, DBWRAPPER_MAX_FILE_SIZE);
     SetMaxOpenFiles(&options);
     return options;
 }
@@ -196,14 +195,17 @@ struct CDBBatch::WriteBatchImpl {
 
 CDBBatch::CDBBatch(const CDBWrapper& _parent)
     : parent{_parent},
-      m_impl_batch{std::make_unique<CDBBatch::WriteBatchImpl>()} {};
+      m_impl_batch{std::make_unique<CDBBatch::WriteBatchImpl>()}
+{
+    Clear();
+};
 
 CDBBatch::~CDBBatch() = default;
 
 void CDBBatch::Clear()
 {
     m_impl_batch->batch.Clear();
-    size_estimate = 0;
+    size_estimate = kHeader;
 }
 
 void CDBBatch::WriteImpl(Span<const std::byte> key, DataStream& ssValue)
@@ -339,7 +341,7 @@ bool CDBWrapper::WriteBatch(CDBBatch& batch, bool fSync)
     HandleError(status);
     if (log_memory) {
         double mem_after = DynamicMemoryUsage() / 1024.0 / 1024;
-        LogPrint(BCLog::LEVELDB, "WriteBatch memory usage: db=%s, before=%.1fMiB, after=%.1fMiB\n",
+        LogDebug(BCLog::LEVELDB, "WriteBatch memory usage: db=%s, before=%.1fMiB, after=%.1fMiB\n",
                  m_name, mem_before, mem_after);
     }
     return true;
@@ -350,7 +352,7 @@ size_t CDBWrapper::DynamicMemoryUsage() const
     std::string memory;
     std::optional<size_t> parsed;
     if (!DBContext().pdb->GetProperty("leveldb.approximate-memory-usage", &memory) || !(parsed = ToIntegral<size_t>(memory))) {
-        LogPrint(BCLog::LEVELDB, "Failed to get approximate-memory-usage property\n");
+        LogDebug(BCLog::LEVELDB, "Failed to get approximate-memory-usage property\n");
         return 0;
     }
     return parsed.value();

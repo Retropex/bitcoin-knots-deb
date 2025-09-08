@@ -3,27 +3,10 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 //
 // This is a translation to GCC extended asm syntax from YASM code by Intel
-// (available at the bottom of this file).
-
-#if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
-#endif
 
 #include <stdint.h>
 
-#if defined(HAVE_ENDIAN_H)
-#include <endian.h>
-#elif defined(HAVE_SYS_ENDIAN_H)
-#include <sys/endian.h>
-#endif
-
 #include <altivec.h>
-
-#if defined(__clang__)
-#pragma clang attribute push(__attribute__((__target__("power8-vector"))), apply_to = function)
-#elif defined(__GNUC__)
-#pragma GCC target ("power8-vector")
-#endif
 
 namespace sha256_power8
 {
@@ -405,7 +388,3 @@ void Transform_4way(unsigned char* out, const unsigned char* in)
     vec_vsx_st(w4567_3, 1 *16 + 96, out);
 }
 }
-
-#if defined(__clang__)
-#pragma clang attribute pop
-#endif

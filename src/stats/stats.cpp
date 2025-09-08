@@ -4,7 +4,6 @@
 
 #include <stats/stats.h>
 
-#include <common/args.h>
 #include <memusage.h>
 #include <util/time.h>
 
@@ -14,7 +13,10 @@ static const uint32_t SAMPLE_MIN_DELTA_IN_SEC = 2;
 static const int CLEANUP_SAMPLES_THRESHOLD = 100;
 size_t CStats::maxStatsMemory = 0;
 const size_t CStats::DEFAULT_MAX_STATS_MEMORY = 10 * 1024 * 1024; //10 MB
+
+// NOTE: stats/init.cpp help for -statsenable needs to be manually updated
 const bool CStats::DEFAULT_STATISTICS_ENABLED = false;
+
 std::atomic<bool> CStats::m_stats_enabled(false); //disable stats by default
 
 CStats* CStats::m_shared_instance{nullptr};
@@ -127,18 +129,4 @@ void CStats::setMaxMemoryUsageTarget(size_t maxMem)
 
     LOCK(cs_stats);
     maxStatsMemory = maxMem;
-}
-
-void CStats::AddStatsOptions()
-{
-    gArgs.AddArg("-statsenable", strprintf("Enable statistics (default: %u)", DEFAULT_STATISTICS_ENABLED), ArgsManager::ALLOW_ANY, OptionsCategory::STATS);
-    gArgs.AddArg("-statsmaxmemorytarget=<n>", strprintf("Set the memory limit target for statistics in bytes (default: %u)", DEFAULT_MAX_STATS_MEMORY), ArgsManager::ALLOW_ANY, OptionsCategory::STATS);
-}
-
-bool CStats::parameterInteraction()
-{
-    if (gArgs.GetBoolArg("-statsenable", DEFAULT_STATISTICS_ENABLED))
-        DefaultStats()->setMaxMemoryUsageTarget(gArgs.GetIntArg("-statsmaxmemorytarget", DEFAULT_MAX_STATS_MEMORY));
-
-    return true;
 }

@@ -3,7 +3,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <config/bitcoin-config.h> // IWYU pragma: keep
+#include <bitcoin-build-config.h> // IWYU pragma: keep
 
 #include <chainparams.h>
 #include <clientversion.h>
@@ -34,7 +34,7 @@
 
 using node::NodeContext;
 
-const std::function<std::string(const char*)> G_TRANSLATION_FUN = nullptr;
+const TranslateFn G_TRANSLATION_FUN{nullptr};
 
 #if HAVE_DECL_FORK
 
@@ -109,10 +109,11 @@ int fork_daemon(bool nochdir, bool noclose, TokenPipeEnd& endpoint)
 
 #endif
 
-static bool ParseArgs(ArgsManager& args, int argc, char* argv[])
+static bool ParseArgs(NodeContext& node, int argc, char* argv[])
 {
+    ArgsManager& args{*Assert(node.args)};
     // If Qt is used, parameters/bitcoin.conf are parsed in qt/bitcoin.cpp's main()
-    SetupServerArgs(args);
+    SetupServerArgs(args, node.init->canListenIpc());
     std::string error;
     if (!args.ParseParameters(argc, argv, error)) {
         return InitError(Untranslated(strprintf("Error parsing command line arguments: %s", error)));
@@ -128,13 +129,6 @@ static bool ParseArgs(ArgsManager& args, int argc, char* argv[])
             return InitError(Untranslated(strprintf("Command line contains unexpected token '%s', see bitcoind -h for a list of options.", argv[i])));
         }
     }
-
-    g_software_expiry = args.GetIntArg("-softwareexpiry", DEFAULT_SOFTWARE_EXPIRY);
-    if (IsThisSoftwareExpired(GetTime())) {
-        tfm::format(std::cerr, "This software is expired, and may be out of consensus. You must choose to upgrade or override this expiration.\n");
-        exit(EXIT_FAILURE);
-    }
-
     return true;
 }
 
@@ -142,15 +136,15 @@ static bool ProcessInitCommands(ArgsManager& args)
 {
     // Process help and version before taking care about datadir
     if (HelpRequested(args) || args.GetBoolArg("-version", false)) {
-        std::string strUsage = PACKAGE_NAME " daemon version " + FormatFullVersion() + "\n";
+        std::string strUsage = CLIENT_NAME " daemon version " + FormatFullVersion() + "\n";
 
         if (args.GetBoolArg("-version", false)) {
             strUsage += FormatParagraph(LicenseInfo());
         } else {
             strUsage += "\n"
-                "The " PACKAGE_NAME " daemon (bitcoind) is a headless program that connects to the Bitcoin network to validate and relay transactions and blocks, as well as relaying addresses.\n\n"
+                "The " CLIENT_NAME " daemon (bitcoind) is a headless program that connects to the Bitcoin network to validate and relay transactions and blocks, as well as relaying addresses.\n\n"
                 "It provides the backbone of the Bitcoin network and its RPC, REST and ZMQ services can provide various transaction, block and address-related services.\n\n"
-                "There is an optional wallet component which provides cutting-edge transaction services.\n\n"
+                "There is an optional wallet component which provides transaction services.\n\n"
                 "It can be used in a headless environment or as part of a server setup.\n"
                 "\n"
                 "Usage: bitcoind [options]\n"
@@ -207,7 +201,7 @@ static bool AppInit(NodeContext& node)
 
         if (args.GetBoolArg("-daemon", DEFAULT_DAEMON) || args.GetBoolArg("-daemonwait", DEFAULT_DAEMONWAIT)) {
 #if HAVE_DECL_FORK
-            tfm::format(std::cout, PACKAGE_NAME " starting\n");
+            tfm::format(std::cout, CLIENT_NAME " starting\n");
 
             // Daemonize
             switch (fork_daemon(1, 0, daemon_ep)) { // don't chdir (1), do close FDs (0)
@@ -225,7 +219,7 @@ static bool AppInit(NodeContext& node)
                 if (token) { // Success
                     exit(EXIT_SUCCESS);
                 } else { // fRet = false or token read error (premature exit).
-                    tfm::format(std::cerr, "Error during initialization - check debug.log for details\n");
+                    tfm::format(std::cerr, "Error during initialization - check %s for details\n", fs::PathToString(LogInstance().m_file_path.filename()));
                     exit(EXIT_FAILURE);
                 }
             }
@@ -234,10 +228,10 @@ static bool AppInit(NodeContext& node)
             return InitError(Untranslated("-daemon is not supported on this operating system"));
 #endif // HAVE_DECL_FORK
         }
-        // Lock data directory after daemonization
-        if (!AppInitLockDataDirectory())
+        // Lock critical directories after daemonization
+        if (!AppInitLockDirectories())
         {
-            // If locking the data directory failed, exit immediately
+            // If locking a directory failed, exit immediately
             return false;
         }
         fRet = AppInitInterfaces(node) && AppInitMain(node);
@@ -281,12 +275,12 @@ MAIN_FUNCTION
 
     // Interpret command line arguments
     ArgsManager& args = *Assert(node.args);
-    if (!ParseArgs(args, argc, argv)) return EXIT_FAILURE;
+    if (!ParseArgs(node, argc, argv)) return EXIT_FAILURE;
     // Process early info return commands such as -help or -version
     if (ProcessInitCommands(args)) return EXIT_SUCCESS;
 
     // Start application
-    if (!AppInit(node) || !Assert(node.shutdown)->wait()) {
+    if (!AppInit(node) || !Assert(node.shutdown_signal)->wait()) {
         node.exit_status = EXIT_FAILURE;
     }
     Interrupt(node);

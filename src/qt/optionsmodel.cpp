@@ -2,13 +2,14 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <config/bitcoin-config.h> // IWYU pragma: keep
+#include <bitcoin-build-config.h> // IWYU pragma: keep
 
 #include <qt/optionsmodel.h>
 
 #include <qt/bitcoinunits.h>
 #include <qt/guiconstants.h>
 #include <qt/guiutil.h>
+#include <qt/tonalutils.h>
 
 #include <chainparams.h>
 #include <common/args.h>
@@ -21,12 +22,12 @@
 #include <net.h>
 #include <net_processing.h>
 #include <netbase.h>
+#include <node/caches.h>
 #include <node/chainstatemanager_args.h>
 #include <node/context.h>
 #include <node/mempool_args.h> // for ParseDustDynamicOpt
 #include <outputtype.h>
 #include <policy/settings.h>
-#include <txdb.h> // for -dbcache defaults
 #include <util/moneystr.h> // for FormatMoney
 #include <util/string.h>
 #include <validation.h>    // For DEFAULT_SCRIPTCHECK_THREADS
@@ -86,10 +87,13 @@ static const char* SettingName(OptionsModel::OptionID option)
     case OptionsModel::incrementalrelayfee: return "incrementalrelayfee";
     case OptionsModel::mempoolexpiry: return "mempoolexpiry";
     case OptionsModel::rejectunknownscripts: return "rejectunknownscripts";
+    case OptionsModel::rejectunknownwitness: return "rejectunknownwitness";
     case OptionsModel::rejectparasites: return "rejectparasites";
     case OptionsModel::rejecttokens: return "rejecttokens";
     case OptionsModel::rejectspkreuse: return "rejectspkreuse";
     case OptionsModel::minrelaytxfee: return "minrelaytxfee";
+    case OptionsModel::minrelaycoinblocks: return "minrelaycoinblocks";
+    case OptionsModel::minrelaymaturity: return "minrelaymaturity";
     case OptionsModel::bytespersigop: return "bytespersigop";
     case OptionsModel::bytespersigopstrict: return "bytespersigopstrict";
     case OptionsModel::limitancestorcount: return "limitancestorcount";
@@ -98,7 +102,11 @@ static const char* SettingName(OptionsModel::OptionID option)
     case OptionsModel::limitdescendantsize: return "limitdescendantsize";
     case OptionsModel::rejectbarepubkey: return "rejectbarepubkey";
     case OptionsModel::rejectbaremultisig: return "rejectbaremultisig";
+    case OptionsModel::permitephemeral: return "permitephemeral";
+    case OptionsModel::rejectbareanchor: return "rejectbareanchor";
+    case OptionsModel::rejectbaredatacarrier: return "rejectbaredatacarrier";
     case OptionsModel::maxscriptsize: return "maxscriptsize";
+    case OptionsModel::maxtxlegacysigops: return "maxtxlegacysigops";
     case OptionsModel::datacarriercost: return "datacarriercost";
     case OptionsModel::datacarriersize: return "datacarriersize";
     case OptionsModel::rejectnonstddatacarrier: return "rejectnonstddatacarrier";
@@ -109,6 +117,7 @@ static const char* SettingName(OptionsModel::OptionID option)
     case OptionsModel::blockprioritysize: return "blockprioritysize";
     case OptionsModel::blockmaxweight: return "blockmaxweight";
     case OptionsModel::blockreconstructionextratxn: return "blockreconstructionextratxn";
+    case OptionsModel::blockreconstructionextratxnsize: return "blockreconstructionextratxnsize";
     default: throw std::logic_error(strprintf("GUI option %i has no corresponding node setting.", option));
     }
 }
@@ -262,6 +271,18 @@ static QString CanonicalMempoolTRUC(const OptionsModel& model)
     assert(0);
 }
 
+static QString CanonicalPermitEphemeral(const OptionsModel& model)
+{
+    const auto& opts = model.node().mempool().m_opts;
+    if (!(opts.permitephemeral_anchor || opts.permitephemeral_send)) {
+        return "reject";
+    }
+    return
+        QString(opts.permitephemeral_anchor ? "" : "-") + "anchor," +
+        (opts.permitephemeral_send ? "" : "-") + "send," +
+        (opts.permitephemeral_dust ? "" : "-") + "dust";
+}
+
 OptionsModel::OptionsModel(interfaces::Node& node, QObject *parent) :
     QAbstractListModel(parent), m_node{node}
 {
@@ -311,15 +332,19 @@ bool OptionsModel::Init(bilingual_str& error)
         }
         settings.setValue("DisplayBitcoinUnit", QVariant::fromValue(init_unit));
     }
-    QVariant unit = settings.value("DisplayBitcoinUnit");
-    if (settings.contains("DisplayBitcoinUnitKnots")) {
-        unit = settings.value("DisplayBitcoinUnitKnots");
-    }
-    if (unit.canConvert<BitcoinUnit>()) {
-        m_display_bitcoin_unit = unit.value<BitcoinUnit>();
-    } else {
-        m_display_bitcoin_unit = BitcoinUnit::BTC;
-        settings.setValue("DisplayBitcoinUnit", QVariant::fromValue(m_display_bitcoin_unit));
+
+    constexpr auto unit_set_to_variant = [](BitcoinUnit& out, const QVariant& unit_variant){
+        if (unit_variant.isNull()) return false;
+        if (!unit_variant.canConvert<BitcoinUnit>()) return false;
+        const auto unit = unit_variant.value<BitcoinUnit>();
+        if (!BitcoinUnits::availableUnits().contains(unit)) return false;
+        out = unit;
+        return true;
+    };
+    if (!unit_set_to_variant(m_display_bitcoin_unit, settings.value("DisplayBitcoinUnitKnots"))) {
+        if (!unit_set_to_variant(m_display_bitcoin_unit, settings.value("DisplayBitcoinUnit"))) {
+            m_display_bitcoin_unit = BitcoinUnit::BTC;
+        }
     }
 
     if (!settings.contains("bDisplayAddresses"))
@@ -408,7 +433,8 @@ bool OptionsModel::Init(bilingual_str& error)
             m_font_money = FontChoiceAbstract::BestSystemFont;
         }
     }
-    Q_EMIT fontForMoneyChanged(getFontForMoney());
+    m_font_money_supports_tonal = TonalUtils::font_supports_tonal(getFontForMoney(BitcoinUnit::BTC));
+    Q_EMIT fontForMoneyChanged(getFontForMoney(BitcoinUnit::BTC));
 
     if (settings.contains("FontForQRCodes")) {
         m_font_qrcodes = FontChoiceFromString(settings.value("FontForQRCodes").toString());
@@ -595,11 +621,7 @@ QVariant OptionsModel::getOption(OptionID option, const std::string& suffix) con
         return false;
 #endif // USE_UPNP
     case MapPortNatpmp:
-#ifdef USE_NATPMP
         return SettingToBool(setting(), DEFAULT_NATPMP);
-#else
-        return false;
-#endif // USE_NATPMP
     case MinimizeOnClose:
         return fMinimizeOnClose;
 
@@ -672,7 +694,7 @@ QVariant OptionsModel::getOption(OptionID option, const std::string& suffix) con
                suffix.empty()          ? getOption(option, "-prev") :
                                          DEFAULT_PRUNE_TARGET_MiB;
     case DatabaseCache:
-        return qlonglong(SettingToInt(setting(), nDefaultDbCache));
+        return qlonglong(SettingToInt(setting(), DEFAULT_DB_CACHE >> 20));
     case ThreadsScriptVerif:
         return qlonglong(SettingToInt(setting(), DEFAULT_SCRIPTCHECK_THREADS));
     case Listen:
@@ -701,6 +723,8 @@ QVariant OptionsModel::getOption(OptionID option, const std::string& suffix) con
         return qlonglong(std::chrono::duration_cast<std::chrono::hours>(node().mempool().m_opts.expiry).count());
     case rejectunknownscripts:
         return node().mempool().m_opts.require_standard;
+    case rejectunknownwitness:
+        return !node().mempool().m_opts.acceptunknownwitness;
     case rejectparasites:
         return node().mempool().m_opts.reject_parasites;
     case rejecttokens:
@@ -709,6 +733,10 @@ QVariant OptionsModel::getOption(OptionID option, const std::string& suffix) con
         return f_rejectspkreuse;
     case minrelaytxfee:
         return qlonglong(node().mempool().m_opts.min_relay_feerate.GetFeePerK());
+    case minrelaycoinblocks:
+        return qlonglong(node().mempool().m_opts.minrelaycoinblocks);
+    case minrelaymaturity:
+        return node().mempool().m_opts.minrelaymaturity;
     case bytespersigop:
         return nBytesPerSigOp;
     case bytespersigopstrict:
@@ -725,8 +753,16 @@ QVariant OptionsModel::getOption(OptionID option, const std::string& suffix) con
         return !node().mempool().m_opts.permit_bare_pubkey;
     case rejectbaremultisig:
         return !node().mempool().m_opts.permit_bare_multisig;
+    case permitephemeral:
+        return CanonicalPermitEphemeral(*this);
+    case rejectbareanchor:
+        return !node().mempool().m_opts.permitbareanchor;
+    case rejectbaredatacarrier:
+        return !node().mempool().m_opts.permitbaredatacarrier;
     case maxscriptsize:
         return ::g_script_size_policy_limit;
+    case maxtxlegacysigops:
+        return node().mempool().m_opts.maxtxlegacysigops;
     case datacarriercost:
         return double(::g_weight_per_data_byte) / WITNESS_SCALE_FACTOR;
     case datacarriersize:
@@ -751,6 +787,8 @@ QVariant OptionsModel::getOption(OptionID option, const std::string& suffix) con
         return qlonglong(gArgs.GetIntArg("-blockmaxweight", DEFAULT_BLOCK_MAX_WEIGHT) / 1000);
     case blockreconstructionextratxn:
         return qlonglong(gArgs.GetIntArg("-blockreconstructionextratxn", DEFAULT_BLOCK_RECONSTRUCTION_EXTRA_TXN));
+    case blockreconstructionextratxnsize:
+        return qlonglong(gArgs.GetIntArg("-blockreconstructionextratxnsize", DEFAULT_BLOCK_RECONSTRUCTION_EXTRA_TXN_SIZE / 1'000'000));
     default:
         return QVariant();
     }
@@ -761,15 +799,18 @@ QFont OptionsModel::getFontForChoice(const FontChoice& fc)
     QFont f;
     if (std::holds_alternative<FontChoiceAbstract>(fc)) {
         f = GUIUtil::fixedPitchFont(fc != UseBestSystemFont);
-        f.setWeight(QFont::Bold);
+        if (fc == UseBestSystemFont) f.setWeight(QFont::Bold);
     } else {
         f = std::get<QFont>(fc);
     }
     return f;
 }
 
-QFont OptionsModel::getFontForMoney() const
+QFont OptionsModel::getFontForMoney(const BitcoinUnit unit) const
 {
+    if (BitcoinUnits::numsys(unit) == BitcoinUnits::Unit::TBC && !m_font_money_supports_tonal) {
+        return getFontForChoice(FontChoiceAbstract::EmbeddedFont);
+    }
     return getFontForChoice(m_font_money);
 }
 
@@ -949,7 +990,8 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value, const std::
         if (m_font_money == new_font) break;
         settings.setValue("FontForMoney", FontChoiceToString(new_font));
         m_font_money = new_font;
-        Q_EMIT fontForMoneyChanged(getFontForMoney());
+        m_font_money_supports_tonal = TonalUtils::font_supports_tonal(getFontForMoney(BitcoinUnit::BTC));
+        Q_EMIT fontForMoneyChanged(getFontForMoney(BitcoinUnit::BTC));
         break;
     }
     case FontForQRCodes:
@@ -1134,6 +1176,7 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value, const std::
                 auto node_ctx = node().context();
                 assert(node_ctx && node_ctx->mempool && node_ctx->chainman);
                 auto& active_chainstate = node_ctx->chainman->ActiveChainstate();
+                LOCK(node_ctx->mempool->cs);
                 LimitMempoolSize(*node_ctx->mempool, active_chainstate.CoinsTip());
             }
         }
@@ -1160,6 +1203,7 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value, const std::
                 auto node_ctx = node().context();
                 assert(node_ctx && node_ctx->mempool && node_ctx->chainman);
                 auto& active_chainstate = node_ctx->chainman->ActiveChainstate();
+                LOCK(node_ctx->mempool->cs);
                 LimitMempoolSize(*node_ctx->mempool, active_chainstate.CoinsTip());
             }
         }
@@ -1175,6 +1219,14 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value, const std::
         }
         break;
     }
+    case rejectunknownwitness:
+        if (changed()) {
+            // This option is inverted
+            const bool new_value = ! value.toBool();
+            node().updateRwSetting("acceptunknownwitness" + suffix, new_value);
+            node().mempool().m_opts.acceptunknownwitness = new_value;
+        }
+        break;
     case rejectparasites:
     {
         if (changed()) {
@@ -1206,6 +1258,20 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value, const std::
             CAmount nNv = value.toLongLong();
             gArgs.ModifyRWConfigFile("minrelaytxfee", FormatMoney(nNv));
             node().mempool().m_opts.min_relay_feerate = CFeeRate(nNv);
+        }
+        break;
+    case minrelaycoinblocks:
+        if (changed()) {
+            uint64_t nNv = value.toLongLong();
+            update(nNv);
+            node().mempool().m_opts.minrelaycoinblocks = nNv;
+        }
+        break;
+    case minrelaymaturity:
+        if (changed()) {
+            int nNv = value.toInt();
+            update(nNv);
+            node().mempool().m_opts.minrelaymaturity = nNv;
         }
         break;
     case bytespersigop:
@@ -1261,7 +1327,7 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value, const std::
             // The config and internal option is inverted
             const bool nv = ! value.toBool();
             node().mempool().m_opts.permit_bare_pubkey = nv;
-            node().updateRwSetting("permitbaremultisig", nv);
+            node().updateRwSetting("permitbarepubkey", nv);
         }
         break;
     case rejectbaremultisig:
@@ -1272,11 +1338,43 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value, const std::
             gArgs.ModifyRWConfigFile("permitbaremultisig", strprintf("%d", fNewValue));
         }
         break;
+    case permitephemeral:
+    {
+        if (changed()) {
+            std::string nv = value.toString().toStdString();
+            ApplyPermitEphemeralOption(nv, node().mempool().m_opts);
+            update(nv);
+        }
+        break;
+    }
+    case rejectbareanchor:
+        if (changed()) {
+            // The config and internal option is inverted
+            const bool nv = ! value.toBool();
+            node().mempool().m_opts.permitbareanchor = nv;
+            node().updateRwSetting("permitbareanchor", nv);
+        }
+        break;
+    case rejectbaredatacarrier:
+        if (changed()) {
+            // The config and internal option is inverted
+            const bool nv = ! value.toBool();
+            node().mempool().m_opts.permitbaredatacarrier = nv;
+            node().updateRwSetting("permitbaredatacarrier", nv);
+        }
+        break;
     case maxscriptsize:
         if (changed()) {
             const auto nv = value.toLongLong();
             update(nv);
             ::g_script_size_policy_limit = nv;
+        }
+        break;
+    case maxtxlegacysigops:
+        if (changed()) {
+            const auto nv = value.toLongLong();
+            update(nv);
+            node().mempool().m_opts.maxtxlegacysigops = nv;
         }
         break;
     case datacarriercost:
@@ -1369,6 +1467,14 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value, const std::
             std::string strNv = value.toString().toStdString();
             gArgs.ForceSetArg("-blockreconstructionextratxn", strNv);
             gArgs.ModifyRWConfigFile("blockreconstructionextratxn", strNv);
+            setRestartRequired(true);
+        }
+        break;
+    case blockreconstructionextratxnsize:
+        if (changed()) {
+            update(value.toLongLong());
+            gArgs.ForceSetArg("-blockreconstructionextratxnsize", value.toString().toStdString());
+            setRestartRequired(true);
         }
         break;
     case corepolicy:
@@ -1434,7 +1540,7 @@ void OptionsModel::checkAndMigrate()
         // see https://github.com/bitcoin/bitcoin/pull/8273
         // force people to upgrade to the new value if they are using 100MB
         if (settingsVersion < 130000 && settings.contains("nDatabaseCache") && settings.value("nDatabaseCache").toLongLong() == 100)
-            settings.setValue("nDatabaseCache", (qint64)nDefaultDbCache);
+            settings.setValue("nDatabaseCache", (qint64)(DEFAULT_DB_CACHE >> 20));
 
         settings.setValue(strSettingsVersionKey, CLIENT_VERSION);
     }

@@ -15,6 +15,7 @@
 #include <qt/optionsmodel.h>
 #include <qt/overviewpage.h>
 #include <qt/platformstyle.h>
+#include <qt/psbtoperationsdialog.h>
 #include <qt/qvalidatedlineedit.h>
 #include <qt/receivecoinsdialog.h>
 #include <qt/receiverequestdialog.h>
@@ -163,10 +164,16 @@ void BumpFee(TransactionView& view, const uint256& txid, bool expectDisabled, st
     QVERIFY(text.indexOf(QString::fromStdString(expectError)) != -1);
 }
 
-void CompareBalance(WalletModel& walletModel, CAmount expected_balance, QLabel* balance_label_to_check)
+void CompareBalance(WalletModel& walletModel, CAmount expected_balance, QLabel* balance_label_to_check, bool privacy = false)
 {
     BitcoinUnit unit = walletModel.getOptionsModel()->getDisplayUnit();
-    QString balanceComparison = BitcoinUnits::formatWithUnit(unit, expected_balance, false, BitcoinUnits::SeparatorStyle::ALWAYS);
+    QString balanceComparison;
+    if (privacy) {
+        balanceComparison = BitcoinUnits::formatWithPrivacy(unit, expected_balance, BitcoinUnits::SeparatorStyle::ALWAYS, false);
+    } else {
+        const QFont font_for_money = walletModel.getOptionsModel()->getFontForMoney(unit);
+        balanceComparison = BitcoinUnits::formatHtmlWithUnit(font_for_money, unit, expected_balance, false, BitcoinUnits::SeparatorStyle::ALWAYS);
+    }
     QCOMPARE(balance_label_to_check->text().trimmed(), balanceComparison);
 }
 
@@ -226,7 +233,7 @@ std::shared_ptr<CWallet> SetupLegacyWatchOnlyWallet(interfaces::Node& node, Test
         wallet->SetupLegacyScriptPubKeyMan();
         // Add watched key
         CPubKey pubKey = test.coinbaseKey.GetPubKey();
-        bool import_keys = wallet->ImportPubKeys({pubKey.GetID()}, {{pubKey.GetID(), pubKey}} , /*key_origins=*/{}, /*add_keypool=*/false, /*internal=*/false, /*timestamp=*/1);
+        bool import_keys = wallet->ImportPubKeys({{pubKey.GetID(), false}}, {{pubKey.GetID(), pubKey}} , /*key_origins=*/{}, /*add_keypool=*/false, /*timestamp=*/1);
         assert(import_keys);
         wallet->SetLastBlockProcessed(105, WITH_LOCK(node.context()->chainman->GetMutex(), return node.context()->chainman->ActiveChain().Tip()->GetBlockHash()));
     }
@@ -245,8 +252,10 @@ std::shared_ptr<CWallet> SetupDescriptorsWallet(interfaces::Node& node, TestChai
     // Add the coinbase key
     FlatSigningProvider provider;
     std::string error;
-    std::unique_ptr<Descriptor> desc = Parse("combo(" + EncodeSecret(test.coinbaseKey) + ")", provider, error, /* require_checksum=*/ false);
-    assert(desc);
+    auto descs = Parse("combo(" + EncodeSecret(test.coinbaseKey) + ")", provider, error, /* require_checksum=*/ false);
+    assert(!descs.empty());
+    assert(descs.size() == 1);
+    auto& desc = descs.at(0);
     WalletDescriptor w_desc(std::move(desc), 0, 0, 1, 1);
     if (!wallet->AddWalletDescriptor(w_desc, provider, "", false)) assert(false);
     CTxDestination dest = GetDestinationForKey(test.coinbaseKey.GetPubKey(), wallet->m_default_address_type);
@@ -277,6 +286,7 @@ public:
         AddWallet(context, wallet);
         walletModel = std::make_unique<WalletModel>(interfaces::MakeWallet(context, wallet), *clientModel, platformStyle);
         RemoveWallet(context, wallet, /* load_on_start= */ std::nullopt);
+        sendCoinsDialog.setClientModel(clientModel.get());
         sendCoinsDialog.setModel(walletModel.get());
         transactionView.setModel(walletModel.get());
     }
@@ -293,9 +303,9 @@ public:
 //
 // This also requires overriding the default minimal Qt platform:
 //
-//     QT_QPA_PLATFORM=xcb     src/qt/test/test_bitcoin-qt  # Linux
-//     QT_QPA_PLATFORM=windows src/qt/test/test_bitcoin-qt  # Windows
-//     QT_QPA_PLATFORM=cocoa   src/qt/test/test_bitcoin-qt  # macOS
+//     QT_QPA_PLATFORM=xcb     build/bin/test_bitcoin-qt  # Linux
+//     QT_QPA_PLATFORM=windows build/bin/test_bitcoin-qt  # Windows
+//     QT_QPA_PLATFORM=cocoa   build/bin/test_bitcoin-qt  # macOS
 void TestGUI(interfaces::Node& node, const std::shared_ptr<CWallet>& wallet)
 {
     // Create widgets for sending coins and listing transactions.
@@ -325,8 +335,8 @@ void TestGUI(interfaces::Node& node, const std::shared_ptr<CWallet>& wallet)
     QVERIFY(FindTx(*transactionTableModel, txid1).isValid());
     QVERIFY(FindTx(*transactionTableModel, txid2).isValid());
 
-    // Call bumpfee. Test disabled, canceled, enabled, then failing cases.
-    BumpFee(transactionView, txid1, /*expectDisabled=*/true, /*expectError=*/"not BIP 125 replaceable", /*cancel=*/false);
+    // Call bumpfee. Test canceled fullrbf bump, canceled bip-125-rbf bump, passing bump, and then failing bump.
+    BumpFee(transactionView, txid1, /*expectDisabled=*/false, /*expectError=*/{}, /*cancel=*/true);
     BumpFee(transactionView, txid2, /*expectDisabled=*/false, /*expectError=*/{}, /*cancel=*/true);
     BumpFee(transactionView, txid2, /*expectDisabled=*/false, /*expectError=*/{}, /*cancel=*/false);
     BumpFee(transactionView, txid2, /*expectDisabled=*/true, /*expectError=*/"already bumped", /*cancel=*/false);
@@ -335,7 +345,7 @@ void TestGUI(interfaces::Node& node, const std::shared_ptr<CWallet>& wallet)
     OverviewPage overviewPage(platformStyle.get());
     overviewPage.setWalletModel(&walletModel);
     walletModel.pollBalanceChanged(); // Manual balance polling update
-    CompareBalance(walletModel, walletModel.wallet().getBalance(), overviewPage.findChild<QLabel*>("labelBalance"));
+    CompareBalance(walletModel, walletModel.wallet().getBalance(), overviewPage.findChild<QLabel*>("labelBalance"), /*privacy=*/true);
 
     // Check Request Payment button
     ReceiveCoinsDialog receiveCoinsDialog(platformStyle.get());
@@ -371,7 +381,7 @@ void TestGUI(interfaces::Node& node, const std::shared_ptr<CWallet>& wallet)
 
             QCOMPARE(uri.count("amount=0.00000001"), 2);
             QCOMPARE(receiveRequestDialog->QObject::findChild<QLabel*>("amount_tag")->text(), QString("Amount:"));
-            QCOMPARE(receiveRequestDialog->QObject::findChild<QLabel*>("amount_content")->text(), QString::fromStdString("0.00000001 " + CURRENCY_UNIT));
+            CompareBalance(walletModel, 1, receiveRequestDialog->QObject::findChild<QLabel*>("amount_content"));
 
             QCOMPARE(uri.count("label=TEST_LABEL_1"), 2);
             QCOMPARE(receiveRequestDialog->QObject::findChild<QLabel*>("label_tag")->text(), QString("Label:"));
@@ -459,6 +469,17 @@ void TestGUIWatchOnly(interfaces::Node& node, TestChain100Setup& test)
 
     // Send tx and verify PSBT copied to the clipboard.
     SendCoins(*wallet.get(), sendCoinsDialog, PKHash(), 5 * COIN, /*rbf=*/false, QMessageBox::Save);
+    auto psbt_dlg = []() -> PSBTOperationsDialog * {
+        for (QWidget* widget : QApplication::topLevelWidgets()) {
+            if (widget->inherits("PSBTOperationsDialog")) {
+                return qobject_cast<PSBTOperationsDialog*>(widget);
+            }
+        }
+        return nullptr;
+    }();
+    QVERIFY(psbt_dlg);
+    psbt_dlg->copyToClipboard();
+    psbt_dlg->close();
     const std::string& psbt_string = QApplication::clipboard()->text().toStdString();
     QVERIFY(!psbt_string.empty());
 
@@ -500,8 +521,8 @@ void WalletTests::walletTests()
         // framework when it tries to look up unimplemented cocoa functions,
         // and fails to handle returned nulls
         // (https://bugreports.qt.io/browse/QTBUG-49686).
-        QWARN("Skipping WalletTests on mac build with 'minimal' platform set due to Qt bugs. To run AppTests, invoke "
-              "with 'QT_QPA_PLATFORM=cocoa test_bitcoin-qt' on mac, or else use a linux or windows build.");
+        qWarning() << "Skipping WalletTests on mac build with 'minimal' platform set due to Qt bugs. To run AppTests, invoke "
+                      "with 'QT_QPA_PLATFORM=cocoa test_bitcoin-qt' on mac, or else use a linux or windows build.";
         return;
     }
 #endif

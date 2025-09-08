@@ -40,12 +40,17 @@ double ComputePriority2(double inputs_coin_age, unsigned int mod_vsize)
     return inputs_coin_age / mod_vsize;
 }
 
-double GetCoinAge(const CTransaction &tx, const CCoinsViewCache& view, int nHeight, CAmount &inChainInputValue)
+double ReversePriority2(const double coin_age_priority, const unsigned int mod_vsize)
 {
-    inChainInputValue = 0;
-    if (tx.IsCoinBase())
-        return 0.0;
-    double dResult = 0.0;
+    return coin_age_priority * mod_vsize;
+}
+
+CoinAgeCache GetCoinAge(const CTransaction &tx, const CCoinsViewCache& view, int nHeight)
+{
+    CoinAgeCache r{COIN_AGE_CACHE_ZERO};
+    if (tx.IsCoinBase()) {
+        return r;
+    }
     for (const CTxIn& txin : tx.vin)
     {
         const Coin& coin = view.AccessCoin(txin.prevout);
@@ -53,11 +58,11 @@ double GetCoinAge(const CTransaction &tx, const CCoinsViewCache& view, int nHeig
             continue;
         }
         if (coin.nHeight <= nHeight) {
-            dResult += (double)(coin.out.nValue) * (nHeight - coin.nHeight);
-            inChainInputValue += coin.out.nValue;
+            r.inputs_coin_age += (double)(coin.out.nValue) * (nHeight - coin.nHeight);
+            r.in_chain_input_value += coin.out.nValue;
         }
     }
-    return dResult;
+    return r;
 }
 
 void CTxMemPoolEntry::UpdateCachedPriority(unsigned int currentHeight, CAmount valueInCurrentBlock)
@@ -111,6 +116,7 @@ CTxMemPoolEntry::GetPriority(unsigned int currentHeight) const
     return dResult;
 }
 
+#ifndef BUILDING_FOR_LIBBITCOINKERNEL
 // We want to sort transactions by coin age priority
 typedef std::pair<double, CTxMemPool::txiter> TxCoinAgePriority;
 
@@ -254,3 +260,4 @@ void BlockAssembler::addPriorityTxs(const CTxMemPool& mempool, int &nPackagesSel
     }
     fNeedSizeAccounting = fSizeAccounting;
 }
+#endif

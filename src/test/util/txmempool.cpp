@@ -38,9 +38,7 @@ CTxMemPoolEntry TestMemPoolEntryHelper::FromTx(const CMutableTransaction& tx) co
 
 CTxMemPoolEntry TestMemPoolEntryHelper::FromTx(const CTransactionRef& tx) const
 {
-    constexpr double coin_age{0};
-    const CAmount inChainValue = 0;
-    return CTxMemPoolEntry{tx, nFee, TicksSinceEpoch<std::chrono::seconds>(time), nHeight, m_sequence, /*entry_tx_inputs_coin_age=*/coin_age, inChainValue, spendsCoinbase, /*extra_weight=*/0, sigOpCost, lp};
+    return CTxMemPoolEntry{tx, nFee, TicksSinceEpoch<std::chrono::seconds>(time), nHeight, m_sequence, COIN_AGE_CACHE_ZERO, spendsCoinbase, /*extra_weight=*/0, sigOpCost, lp};
 }
 
 std::optional<std::string> CheckPackageMempoolAcceptResult(const Package& txns,
@@ -144,6 +142,43 @@ std::optional<std::string> CheckPackageMempoolAcceptResult(const Package& txns,
     return std::nullopt;
 }
 
+void CheckMempoolEphemeralInvariants(const CTxMemPool& tx_pool)
+{
+    LOCK(tx_pool.cs);
+    for (const auto& tx_info : tx_pool.infoAll()) {
+        const auto& entry = *Assert(tx_pool.GetEntry(tx_info.tx->GetHash()));
+
+        std::vector<uint32_t> dust_indexes = GetDust(*tx_info.tx, tx_pool.m_opts.dust_relay_feerate);
+
+        Assert(dust_indexes.size() < 2);
+
+        if (dust_indexes.empty()) continue;
+
+        // Transaction must have no base fee
+        Assert(entry.GetFee() == 0 && entry.GetModifiedFee() == 0);
+
+        // Transaction has single dust; make sure it's swept or will not be mined
+        const auto& children = entry.GetMemPoolChildrenConst();
+
+        // Multiple children should never happen as non-dust-spending child
+        // can get mined as package
+        Assert(children.size() < 2);
+
+        if (children.empty()) {
+            // No children and no fees; modified fees aside won't get mined so it's fine
+            // Happens naturally if child spend is RBF cycled away.
+            continue;
+        }
+
+        // Only-child should be spending the dust
+        const auto& only_child = children.begin()->get().GetTx();
+        COutPoint dust_outpoint{tx_info.tx->GetHash(), dust_indexes[0]};
+        Assert(std::any_of(only_child.vin.begin(), only_child.vin.end(), [&dust_outpoint](const CTxIn& txin) {
+            return txin.prevout == dust_outpoint;
+            }));
+    }
+}
+
 void CheckMempoolTRUCInvariants(const CTxMemPool& tx_pool)
 {
     LOCK(tx_pool.cs);
@@ -173,4 +208,19 @@ void CheckMempoolTRUCInvariants(const CTxMemPool& tx_pool)
             }
         }
     }
+}
+
+void AddToMempool(CTxMemPool& tx_pool, const CTxMemPoolEntry& entry)
+{
+    const auto entry_coin_age_cache = entry.GetInternalCoinAgeCache();
+    LOCK2(cs_main, tx_pool.cs);
+    auto changeset = tx_pool.GetChangeSet();
+    changeset->StageAddition(entry.GetSharedTx(), entry.GetFee(),
+            entry.GetTime().count(), entry.GetHeight(), entry.GetSequence(),
+            entry_coin_age_cache,
+            /*spends_coinbase=*/ entry.GetSpendsCoinbase(),
+            /*extra_weight=*/ entry.GetExtraWeight(),
+            /*sigops_cost=*/ entry.GetSigOpCost(),
+            /*lp=*/ entry.GetLockPoints());
+    changeset->Apply();
 }

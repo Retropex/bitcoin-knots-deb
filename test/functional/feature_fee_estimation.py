@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test fee estimation code."""
 from copy import deepcopy
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN
 import http.client
 import json
 import os
@@ -44,7 +44,7 @@ def small_txpuzzle_randfee(
     # Exponentially distributed from 1-128 * fee_increment
     rand_fee = float(fee_increment) * (1.1892 ** random.randint(0, 28))
     # Total fee ranges from min_fee to min_fee + 127*fee_increment
-    fee = min_fee - fee_increment + satoshi_round(rand_fee)
+    fee = min_fee - fee_increment + satoshi_round(rand_fee, rounding=ROUND_DOWN)
     utxos_to_spend = []
     total_in = Decimal("0.00000000")
     while total_in <= (amount + fee) and len(conflist) > 0:
@@ -110,10 +110,11 @@ def check_smart_estimates(node, fees_seen):
     """Call estimatesmartfee and verify that the estimates meet certain invariants."""
 
     delta = 1.0e-6  # account for rounding error
-    last_feerate = float(max(fees_seen))
     all_smart_estimates = [node.estimatesmartfee(i) for i in range(1, 26)]
     mempoolMinFee = node.getmempoolinfo()["mempoolminfee"]
     minRelaytxFee = node.getmempoolinfo()["minrelaytxfee"]
+    feerate_ceiling = max(max(fees_seen), float(mempoolMinFee), float(minRelaytxFee))
+    last_feerate = feerate_ceiling
     for i, e in enumerate(all_smart_estimates):  # estimate is for i+1
         assert_equal(e, rest_getfee(node.url, 'unset', i+1))
 
@@ -122,9 +123,9 @@ def check_smart_estimates(node, fees_seen):
         assert_greater_than_or_equal(feerate, float(mempoolMinFee))
         assert_greater_than_or_equal(feerate, float(minRelaytxFee))
 
-        if feerate + delta < min(fees_seen) or feerate - delta > max(fees_seen):
+        if feerate + delta < min(fees_seen) or feerate - delta > feerate_ceiling:
             raise AssertionError(
-                f"Estimated fee ({feerate}) out of range ({min(fees_seen)},{max(fees_seen)})"
+                f"Estimated fee ({feerate}) out of range ({min(fees_seen)},{feerate_ceiling})"
             )
         if feerate - delta > last_feerate:
             raise AssertionError(
@@ -171,7 +172,7 @@ def get_feerate_into_mempool(node, kB):
     for entry in mempool_entries:
         bytes_remaining -= entry['vsize']
         if bytes_remaining <= 0:
-            return satoshi_round(entry['feerate_BTC/vB'] * 1000)
+            return satoshi_round(entry['feerate_BTC/vB'] * 1000, rounding=ROUND_DOWN)
     raise AssertionError('Entire mempool is smaller than %s kB' % (kB,))
 
 
@@ -182,8 +183,8 @@ class EstimateFeeTest(BitcoinTestFramework):
         self.noban_tx_relay = True
         self.extra_args = [
             ['-rest'],
-            ["-blockmaxweight=68000", "-rest"],
-            ["-blockmaxweight=32000"],
+            ["-blockmaxweight=72000", "-rest"],
+            ["-blockmaxweight=36000"],
         ]
 
     def setup_network(self):
@@ -278,12 +279,16 @@ class EstimateFeeTest(BitcoinTestFramework):
     def test_feerate_dustrelayfee_common(self, node, multiplier, dust_mode, desc, expected_base):
         dust_parameter = f"-dustdynamic={dust_mode}".replace('=3*', '=')
         self.log.info(f"Test dust limit setting {dust_parameter} (fee estimation for {desc})")
-        self.restart_node(0, extra_args=[dust_parameter])
+        self.restart_node(0, extra_args=[dust_parameter, '-dustrelayfee=0'])
         assert_equal(node.getmempoolinfo()['dustdynamic'], dust_mode)
+        expected_dustrelayfee = satoshi_round(expected_base() * multiplier, rounding=ROUND_DOWN)
         with node.busy_wait_for_debug_log([b'Updating dust feerate']):
+            mempool_info = node.getmempoolinfo()
+            assert mempool_info['dustrelayfee'] != expected_dustrelayfee
+            assert mempool_info['dustrelayfeefloor'] <= expected_dustrelayfee
             node.mockscheduler(SECONDS_PER_HOUR)
         mempool_info = node.getmempoolinfo()
-        assert_equal(mempool_info['dustrelayfee'], satoshi_round(expected_base() * multiplier))
+        assert_equal(mempool_info['dustrelayfee'], expected_dustrelayfee)
         assert mempool_info['dustrelayfee'] > mempool_info['dustrelayfeefloor']
 
     def test_feerate_dustrelayfee_target(self, node, multiplier, dustfee_target):
@@ -332,10 +337,10 @@ class EstimateFeeTest(BitcoinTestFramework):
         self.connect_nodes(1, 0)
         self.connect_nodes(0, 2)
 
-    def test_feerate_mempoolminfee(self):
-        high_val = 3 * self.nodes[1].estimatesmartfee(1)["feerate"]
+    def test_estimates_with_highminrelaytxfee(self):
+        high_val = 3 * self.nodes[1].estimatesmartfee(2)["feerate"]
         self.restart_node(1, extra_args=[f"-minrelaytxfee={high_val}", '-rest'])
-        check_estimates(self.nodes[1], self.fees_per_kb)
+        check_smart_estimates(self.nodes[1], self.fees_per_kb)
         self.restart_node(1)
 
     def sanity_check_rbf_estimates(self, utxos):
@@ -548,11 +553,11 @@ class EstimateFeeTest(BitcoinTestFramework):
 
         self.test_feerate_dustrelayfee()
 
-        # check that the effective feerate is greater than or equal to the mempoolminfee even for high mempoolminfee
+        # check that estimatesmartfee feerate is greater than or equal to maximum of mempoolminfee and minrelaytxfee
         self.log.info(
-            "Test fee rate estimation after restarting node with high MempoolMinFee"
+            "Test fee rate estimation after restarting node with high minrelaytxfee"
         )
-        self.test_feerate_mempoolminfee()
+        self.test_estimates_with_highminrelaytxfee()
 
         self.log.info("Test acceptstalefeeestimates option")
         self.test_acceptstalefeeestimates_option()

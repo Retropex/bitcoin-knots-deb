@@ -19,7 +19,7 @@ class QBoxLayout;
 class QCheckBox;
 class QDataWidgetMapper;
 class QDoubleSpinBox;
-class QBoxLayout;
+class QEvent;
 class QRadioButton;
 class QSpinBox;
 class QString;
@@ -78,6 +78,8 @@ public:
     void setCurrentTab(OptionsDialog::Tab tab);
 
 private Q_SLOTS:
+    void updateThemeColors();
+
     /* set OK button state (enabled / disabled) */
     void setOkButtonState(bool fState);
     void on_resetButton_clicked();
@@ -104,6 +106,9 @@ Q_SIGNALS:
     void proxyIpChecks(QValidatedLineEdit *pUiProxyIp, uint16_t nProxyPort);
     void quitOnReset();
 
+protected:
+    void changeEvent(QEvent *e) override;
+
 private:
     Ui::OptionsDialog *ui;
     ClientModel* m_client_model{nullptr};
@@ -119,6 +124,7 @@ private:
     QCheckBox *walletrbf;
 
     QSpinBox *blockreconstructionextratxn;
+    QDoubleSpinBox *blockreconstructionextratxnsize;
 
     QValueComboBox *mempoolreplacement;
     QValueComboBox *mempooltruc;
@@ -128,10 +134,13 @@ private:
     QSpinBox *mempoolexpiry;
 
     QCheckBox *rejectunknownscripts;
+    QCheckBox *rejectunknownwitness;
     QCheckBox *rejectparasites;
     QCheckBox *rejecttokens;
     QCheckBox *rejectspkreuse;
     BitcoinAmountField *minrelaytxfee;
+    BitcoinAmountField *minrelaycoinblocks;
+    QSpinBox *minrelaymaturity;
     QSpinBox *bytespersigop, *bytespersigopstrict;
     QSpinBox *limitancestorcount;
     QSpinBox *limitancestorsize;
@@ -139,7 +148,11 @@ private:
     QSpinBox *limitdescendantsize;
     QCheckBox *rejectbarepubkey;
     QCheckBox *rejectbaremultisig;
+    QValueComboBox *permitephemeral;
+    QCheckBox *rejectbareanchor;
+    QCheckBox *rejectbaredatacarrier;
     QSpinBox *maxscriptsize;
+    QSpinBox *maxtxlegacysigops;
     QSpinBox *datacarriersize;
     QDoubleSpinBox *datacarriercost;
     QCheckBox *rejectnonstddatacarrier;

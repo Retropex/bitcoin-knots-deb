@@ -73,46 +73,34 @@ std::set<int> InterpretSubtractFeeFromOutputInstructions(const UniValue& sffo_in
 {
     std::set<int> sffo_set;
     if (sffo_instructions.isNull()) return sffo_set;
-    if (sffo_instructions.isBool()) {
-        if (sffo_instructions.get_bool()) sffo_set.insert(0);
-        return sffo_set;
-    }
+
     for (const auto& sffo : sffo_instructions.getValues()) {
+        int pos{-1};
         if (sffo.isStr()) {
-            for (size_t i = 0; i < destinations.size(); ++i) {
-                if (sffo.get_str() == destinations.at(i)) {
-                    sffo_set.insert(i);
-                    break;
-                }
-            }
+            auto it = find(destinations.begin(), destinations.end(), sffo.get_str());
+            if (it == destinations.end()) throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid parameter 'subtract fee from output', destination %s not found in tx outputs", sffo.get_str()));
+            pos = it - destinations.begin();
+        } else if (sffo.isNum()) {
+            pos = sffo.getInt<int>();
+        } else {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid parameter 'subtract fee from output', invalid value type: %s", uvTypeName(sffo.type())));
         }
-        if (sffo.isNum()) {
-            int pos = sffo.getInt<int>();
-            if (sffo_set.contains(pos))
-                throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid parameter, duplicated position: %d", pos));
-            if (pos < 0)
-                throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid parameter, negative position: %d", pos));
-            if (pos >= int(destinations.size()))
-                throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid parameter, position too large: %d", pos));
-            sffo_set.insert(pos);
-        }
+
+        if (sffo_set.contains(pos))
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid parameter 'subtract fee from output', duplicated position: %d", pos));
+        if (pos < 0)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid parameter 'subtract fee from output', negative position: %d", pos));
+        if (pos >= int(destinations.size()))
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid parameter 'subtract fee from output', position too large: %d", pos));
+        sffo_set.insert(pos);
     }
     return sffo_set;
 }
 
 static UniValue FinishTransaction(const std::shared_ptr<CWallet> pwallet, const UniValue& options, CMutableTransaction& rawTx)
 {
-    bool can_anti_fee_snipe = !options.exists("locktime");
-
-    for (const CTxIn& tx_in : rawTx.vin) {
-        // Checks sequence values consistent with DiscourageFeeSniping
-        can_anti_fee_snipe &= (tx_in.nSequence == CTxIn::MAX_SEQUENCE_NONFINAL || tx_in.nSequence == MAX_BIP125_RBF_SEQUENCE);
-    }
-
-    if (can_anti_fee_snipe) {
-        LOCK(pwallet->cs_wallet);
-        FastRandomContext rng_fast;
-        DiscourageFeeSniping(rawTx, rng_fast, pwallet->chain(), pwallet->GetLastBlockHash(), pwallet->GetLastBlockHeight());
+    if (!options.exists("locktime")) {
+        MaybeDiscourageFeeSniping2(*pwallet, rawTx);
     }
 
     // Make a blank psbt
@@ -328,10 +316,13 @@ RPCHelpMan sendtoaddress()
     UniValue address_amounts(UniValue::VOBJ);
     const std::string address = request.params[0].get_str();
     address_amounts.pushKV(address, request.params[1]);
-    std::vector<CRecipient> recipients = CreateRecipients(
-            ParseOutputs(address_amounts),
-            InterpretSubtractFeeFromOutputInstructions(request.params[4], address_amounts.getKeys())
-    );
+
+    std::set<int> sffo_set;
+    if (!request.params[4].isNull() && request.params[4].get_bool()) {
+        sffo_set.insert(0);
+    }
+
+    std::vector<CRecipient> recipients{CreateRecipients(ParseOutputs(address_amounts), sffo_set)};
     const bool verbose{request.params[10].isNull() ? false : request.params[10].get_bool()};
 
     return SendMoney(*pwallet, coin_control, recipients, mapValue, verbose);
@@ -770,11 +761,13 @@ CreatedTransactionResult FundTransaction(CWallet& wallet, const CMutableTransact
                 FlatSigningProvider desc_out;
                 std::string error;
                 std::vector<CScript> scripts_temp;
-                std::unique_ptr<Descriptor> desc = Parse(desc_str, desc_out, error, true);
-                if (!desc) {
+                auto descs = Parse(desc_str, desc_out, error, true);
+                if (descs.empty()) {
                     throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Unable to parse descriptor '%s': %s", desc_str, error));
                 }
-                desc->Expand(0, desc_out, scripts_temp, desc_out);
+                for (auto& desc : descs) {
+                    desc->Expand(0, desc_out, scripts_temp, desc_out);
+                }
                 coinControl.m_external_provider.Merge(std::move(desc_out));
             }
         }
@@ -856,7 +849,10 @@ RPCHelpMan fundrawtransaction()
                 "Note that all inputs selected must be of standard form and P2SH scripts must be\n"
                 "in the wallet using importaddress or addmultisigaddress (to calculate fees).\n"
                 "You can see whether this is the case by checking the \"solvable\" field in the listunspent output.\n"
-                "Only pay-to-pubkey, multisig, and P2SH versions thereof are currently supported for watch-only\n",
+                "Only pay-to-pubkey, multisig, and P2SH versions thereof are currently supported for watch-only.\n"
+                "Note that if specifying an exact fee rate, the resulting transaction may have a higher fee rate\n"
+                "if the transaction has unconfirmed inputs. This is because the wallet will attempt to make the\n"
+                "entire package have the given fee rate, not the resulting transaction.\n",
                 {
                     {"hexstring", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The hex string of the raw transaction"},
                     {"options", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED, "For backward compatibility: passing in a true instead of an object will result in {\"includeWatching\":true}",
@@ -1101,9 +1097,9 @@ static RPCHelpMan bumpfee_helper(std::string method_name)
     const std::string incremental_fee{CFeeRate(DEFAULT_INCREMENTAL_RELAY_FEE).ToString(FeeEstimateMode::SAT_VB)};
 
     return RPCHelpMan{method_name,
-        "\nBumps the fee of an opt-in-RBF transaction T, replacing it with a new transaction B.\n"
+        "Bumps the fee of a transaction T, replacing it with a new transaction B.\n"
         + std::string(want_psbt ? "Returns a PSBT instead of creating and signing a new transaction.\n" : "") +
-        "An opt-in RBF transaction with the given txid must be in the wallet.\n"
+        "A transaction with the given txid must be in the wallet.\n"
         "The command will pay the additional fee by reducing change outputs or adding inputs when necessary.\n"
         "It may add a new change output if one does not already exist.\n"
         "All inputs in the original transaction will be included in the replacement transaction.\n"
@@ -1123,13 +1119,17 @@ static RPCHelpMan bumpfee_helper(std::string method_name)
                              "\nSpecify a fee rate in " + CURRENCY_ATOM + "/vB instead of relying on the built-in fee estimator.\n"
                              "Must be at least " + incremental_fee + " higher than the current transaction fee rate.\n"
                              "WARNING: before version 0.21, fee_rate was in " + CURRENCY_UNIT + "/kvB. As of 0.21, fee_rate is in " + CURRENCY_ATOM + "/vB.\n"},
-                    {"replaceable", RPCArg::Type::BOOL, RPCArg::Default{true}, "Whether the new transaction should still be\n"
+                    {"replaceable", RPCArg::Type::BOOL, RPCArg::Default{true},
+                             "Whether the new transaction should be\n"
                              "marked bip-125 replaceable. If true, the sequence numbers in the transaction will\n"
-                             "be left unchanged from the original. If false, any input sequence numbers in the\n"
-                             "original transaction that were less than 0xfffffffe will be increased to 0xfffffffe\n"
+                             "be set to 0xfffffffd. If false, any input sequence numbers in the\n"
+                             "transaction will be set to 0xfffffffe\n"
                              "so the new transaction will not be explicitly bip-125 replaceable (though it may\n"
                              "still be replaceable in practice, for example if it has unconfirmed ancestors which\n"
                              "are replaceable).\n"},
+                    {"require_replacable", RPCArg::Type::BOOL, RPCArg::Default{true},
+                        "Fail (with an exception) if the target txid is not considered replacable (eg, BIP 125)."
+                    },
                     {"estimate_mode", RPCArg::Type::STR, RPCArg::Default{"unset"}, "The fee estimate mode, must be one of (case insensitive):\n"
                               + FeeModesDetail(std::string("economical mode is used if the transaction is replaceable;\notherwise, conservative mode is used"))},
                     {"outputs", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "The outputs specified as key-value pairs.\n"
@@ -1183,14 +1183,15 @@ static RPCHelpMan bumpfee_helper(std::string method_name)
 
     std::optional<uint32_t> original_change_index;
 
+    const UniValue& options = request.params[1];
     if (!request.params[1].isNull()) {
-        UniValue options = request.params[1];
         RPCTypeCheckObj(options,
             {
                 {"confTarget", UniValueType(UniValue::VNUM)},
                 {"conf_target", UniValueType(UniValue::VNUM)},
                 {"fee_rate", UniValueType()}, // will be checked by AmountFromValue() in SetFeeEstimateMode()
                 {"replaceable", UniValueType(UniValue::VBOOL)},
+                {"require_replacable", UniValueType(UniValue::VBOOL)},
                 {"estimate_mode", UniValueType(UniValue::VSTR)},
                 {"outputs", UniValueType()}, // will be checked by AddOutputs()
                 {"original_change_index", UniValueType(UniValue::VNUM)},
@@ -1228,6 +1229,13 @@ static RPCHelpMan bumpfee_helper(std::string method_name)
     pwallet->BlockUntilSyncedToCurrentChain();
 
     LOCK(pwallet->cs_wallet);
+
+    if ((!options.exists("require_replacable")) || options["require_replacable"].get_bool()) {
+        const auto wtx = pwallet->GetWalletTx(hash);
+        if (!SignalsOptInRBF(*wtx->tx)) {
+            throw JSONRPCError(RPC_WALLET_ERROR, "Transaction is not BIP 125 replaceable");
+        }
+    }
 
     EnsureWalletIsUnlocked(*pwallet);
 
@@ -1842,7 +1850,7 @@ RPCHelpMan walletcreatefundedpsbt()
                             "accepted as second parameter.",
                         OutputsDoc(),
                         RPCArgOptions{.skip_type_check = true}},
-                    {"locktime", RPCArg::Type::NUM, RPCArg::Default{0}, "Raw locktime. Non-0 value also locktime-activates inputs"},
+                    {"locktime", RPCArg::Type::NUM, RPCArg::DefaultHint{"locktime close to block height to prevent fee sniping"}, "Raw locktime. Non-0 value also locktime-activates inputs"},
                     {"options", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED, "",
                         Cat<std::vector<RPCArg>>(
                         {
@@ -1918,9 +1926,14 @@ RPCHelpMan walletcreatefundedpsbt()
     // This sets us up for a future PR to completely remove tx from the function signature in favor of passing inputs directly
     rawTx.vout.clear();
     auto txr = FundTransaction(wallet, rawTx, recipients, options, coin_control, /*override_min_fee=*/true);
+    rawTx = CMutableTransaction(*txr.tx);
+
+    if (request.params[2].isNull()) {
+        MaybeDiscourageFeeSniping2(*pwallet, rawTx);
+    }
 
     // Make a blank psbt
-    PartiallySignedTransaction psbtx(CMutableTransaction(*txr.tx));
+    PartiallySignedTransaction psbtx(rawTx);
 
     // Fill transaction with out data but don't sign
     bool bip32derivs = request.params[4].isNull() ? true : request.params[4].get_bool();

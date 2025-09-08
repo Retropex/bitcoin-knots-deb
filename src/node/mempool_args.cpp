@@ -9,6 +9,7 @@
 
 #include <common/args.h>
 #include <common/messages.h>
+#include <common/settings.h>
 #include <consensus/amount.h>
 #include <kernel/chainparams.h>
 #include <logging.h>
@@ -17,6 +18,7 @@
 #include <policy/fees.h>
 #include <policy/policy.h>
 #include <tinyformat.h>
+#include <univalue.h>
 #include <util/moneystr.h>
 #include <util/result.h>
 #include <util/strencodings.h>
@@ -32,6 +34,9 @@
 using common::AmountErrMsg;
 using kernel::MemPoolLimits;
 using kernel::MemPoolOptions;
+
+//! Maximum mempool size on 32-bit systems.
+static constexpr int MAX_32BIT_MEMPOOL_MB{500};
 
 namespace {
 void ApplyArgsManOptions(const ArgsManager& argsman, MemPoolLimits& mempool_limits)
@@ -63,9 +68,6 @@ util::Result<std::pair<int32_t, int>> ParseDustDynamicOpt(std::string_view optst
     }
 
     if (optstr.rfind("target:", 0) == 0) {
-        if (!max_fee_estimate_blocks) {
-            return util::Error{_("\"target\" mode requires fee estimator (disabled)")};
-        }
         const auto val = ToIntegral<uint16_t>(optstr.substr(7));
         if (!val) {
             return util::Error{_("failed to parse target block count")};
@@ -73,7 +75,7 @@ util::Result<std::pair<int32_t, int>> ParseDustDynamicOpt(std::string_view optst
         if (*val < 2) {
             return util::Error{_("target must be at least 2 blocks")};
         }
-        if (*val > max_fee_estimate_blocks) {
+        if (Assume(max_fee_estimate_blocks) && *val > max_fee_estimate_blocks) {
             return util::Error{strprintf(_("target can only be at most %s blocks"), max_fee_estimate_blocks)};
         }
         return std::pair<int32_t, int>(-*val, multiplier);
@@ -91,13 +93,60 @@ util::Result<std::pair<int32_t, int>> ParseDustDynamicOpt(std::string_view optst
     }
 }
 
+void ApplyPermitEphemeralOption(const common::SettingsValue& value, MemPoolOptions& mempool_opts)
+{
+    std::optional<bool> flag_anchor, flag_send, flag_dust;
+    if (SettingToBool(value, false)) {
+        flag_anchor = flag_send = flag_dust = true;
+    }
+    for (auto& opt : util::SplitString(SettingToString(value).value_or(""), ",+")) {
+        bool v{true};
+        if (opt.size() && opt[0] == '-') {
+            opt.erase(opt.begin());
+            v = false;
+        }
+        if (opt == "anchor") {
+            flag_anchor = v;
+        } else if (opt == "dust") {
+            flag_dust = v;
+        } else if (opt == "send") {
+            flag_send = v;
+        } else if (opt == "reject" || opt == "0") {
+            flag_anchor = flag_send = flag_dust = !v;
+        }
+    }
+
+    if (!flag_send) {
+        flag_send = flag_dust.value_or(false) && !flag_anchor.value_or(false);
+    }
+    if (!flag_dust) {
+        flag_dust = flag_send;
+    }
+    if (!flag_anchor) {
+        flag_anchor = true;
+    }
+
+    mempool_opts.permitephemeral_dust = *flag_dust;
+    mempool_opts.permitephemeral_anchor = *flag_anchor;
+    mempool_opts.permitephemeral_send = *flag_send;
+}
+
 util::Result<void> ApplyArgsManOptions(const ArgsManager& argsman, const CChainParams& chainparams, MemPoolOptions& mempool_opts)
 {
     mempool_opts.check_ratio = argsman.GetIntArg("-checkmempool", mempool_opts.check_ratio);
 
-    if (auto mb = argsman.GetIntArg("-maxmempool")) mempool_opts.max_size_bytes = *mb * 1'000'000;
+    if (auto mb = argsman.GetIntArg("-maxmempool")) {
+        constexpr bool is_32bit{sizeof(void*) == 4};
+        if (is_32bit && *mb > MAX_32BIT_MEMPOOL_MB) {
+            return util::Error{Untranslated(strprintf("-maxmempool is set to %i but can't be over %i MB on 32-bit systems", *mb, MAX_32BIT_MEMPOOL_MB))};
+        }
+        mempool_opts.max_size_bytes = *mb * 1'000'000;
+    }
 
     if (auto hours = argsman.GetIntArg("-mempoolexpiry")) mempool_opts.expiry = std::chrono::hours{*hours};
+
+    mempool_opts.minrelaycoinblocks = argsman.GetIntArg("-minrelaycoinblocks", mempool_opts.minrelaycoinblocks);
+    mempool_opts.minrelaymaturity = argsman.GetIntArg("-minrelaymaturity", mempool_opts.minrelaymaturity);
 
     // incremental relay fee sets the minimum feerate increase necessary for replacement in the mempool
     // and the amount the mempool min fee increases above the feerate of txs evicted due to mempool limiting.
@@ -109,6 +158,7 @@ util::Result<void> ApplyArgsManOptions(const ArgsManager& argsman, const CChainP
         }
     }
 
+    static_assert(DEFAULT_MIN_RELAY_TX_FEE == DEFAULT_INCREMENTAL_RELAY_FEE);
     if (argsman.IsArgSet("-minrelaytxfee")) {
         if (std::optional<CAmount> min_relay_feerate = ParseMoney(argsman.GetArg("-minrelaytxfee", ""))) {
             // High fee check is done afterward in CWallet::Create()
@@ -133,7 +183,8 @@ util::Result<void> ApplyArgsManOptions(const ArgsManager& argsman, const CChainP
     }
     if (argsman.IsArgSet("-dustdynamic")) {
         const auto optstr = argsman.GetArg("-dustdynamic", DEFAULT_DUST_DYNAMIC);
-        const auto max_fee_estimate_blocks = mempool_opts.estimator ? mempool_opts.estimator->HighestTargetTracked(FeeEstimateHorizon::LONG_HALFLIFE) : (unsigned int)0;
+        // TODO: Should probably reject target-based dustdynamic if there's no estimator, but currently we're checking parameters long before we have the fee estimator initialised
+        const auto max_fee_estimate_blocks = mempool_opts.estimator ? mempool_opts.estimator->HighestTargetTracked(FeeEstimateHorizon::LONG_HALFLIFE) : (CBlockPolicyEstimator::LONG_BLOCK_PERIODS * CBlockPolicyEstimator::LONG_SCALE);
         const auto parsed = ParseDustDynamicOpt(optstr, max_fee_estimate_blocks);
         if (!parsed) {
             return util::Error{strprintf(_("Invalid mode for dustdynamic: %s"), util::ErrorString(parsed))};
@@ -141,6 +192,10 @@ util::Result<void> ApplyArgsManOptions(const ArgsManager& argsman, const CChainP
         mempool_opts.dust_relay_target = parsed->first;
         mempool_opts.dust_relay_multiplier = parsed->second;
     }
+
+    mempool_opts.maxtxlegacysigops = argsman.GetIntArg("-maxtxlegacysigops", mempool_opts.maxtxlegacysigops);
+
+    mempool_opts.permitbareanchor = argsman.GetBoolArg("-permitbareanchor", mempool_opts.permitbareanchor);
 
     mempool_opts.permit_bare_pubkey = argsman.GetBoolArg("-permitbarepubkey", DEFAULT_PERMIT_BAREPUBKEY);
 
@@ -158,7 +213,11 @@ util::Result<void> ApplyArgsManOptions(const ArgsManager& argsman, const CChainP
     mempool_opts.datacarrier_fullcount = argsman.GetBoolArg("-datacarrierfullcount", DEFAULT_DATACARRIER_FULLCOUNT);
     mempool_opts.accept_non_std_datacarrier = argsman.GetBoolArg("-acceptnonstddatacarrier", DEFAULT_ACCEPT_NON_STD_DATACARRIER);
 
+    mempool_opts.permitbaredatacarrier = argsman.GetBoolArg("-permitbaredatacarrier", mempool_opts.permitbaredatacarrier);
+
     mempool_opts.require_standard = !argsman.GetBoolArg("-acceptnonstdtxn", DEFAULT_ACCEPT_NON_STD_TXN);
+
+    mempool_opts.acceptunknownwitness = argsman.GetBoolArg("-acceptunknownwitness", mempool_opts.acceptunknownwitness);
 
     if (argsman.IsArgSet("-mempoolreplacement") || argsman.IsArgSet("-mempoolfullrbf")) {
         // Generally, mempoolreplacement overrides mempoolfullrbf, but the latter is used to infer intent in some cases
@@ -240,6 +299,10 @@ util::Result<void> ApplyArgsManOptions(const ArgsManager& argsman, const CChainP
         } else {  // accept or -enforce
             mempool_opts.truc_policy = TRUCPolicy::Accept;
         }
+    }
+
+    if (argsman.IsArgSet("-permitephemeral")) {
+        ApplyPermitEphemeralOption(argsman.GetSetting("-permitephemeral"), mempool_opts);
     }
 
     mempool_opts.persist_v1_dat = argsman.GetBoolArg("-persistmempoolv1", mempool_opts.persist_v1_dat);

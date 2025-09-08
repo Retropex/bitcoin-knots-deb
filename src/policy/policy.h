@@ -32,6 +32,15 @@ static const unsigned int DEFAULT_BLOCK_PRIORITY_SIZE = 100000;
 static const double MINIMUM_TX_PRIORITY = COIN * 144 / 250;
 /** Default for -blockmaxweight, which controls the range of block weights the mining code will create **/
 static constexpr unsigned int DEFAULT_BLOCK_MAX_WEIGHT{DEFAULT_BLOCK_MAX_SIZE * WITNESS_SCALE_FACTOR};
+/** Default for BlockCreateOptions.block_reserved_size **/
+static constexpr unsigned int DEFAULT_BLOCK_RESERVED_SIZE{1000};
+/** Default for -blockreservedweight **/
+static constexpr unsigned int DEFAULT_BLOCK_RESERVED_WEIGHT{8000};
+/** This accounts for the block header, var_int encoding of the transaction count and a minimally viable
+ * coinbase transaction. It adds an additional safety margin, because even with a thorough understanding
+ * of block serialization, it's easy to make a costly mistake when trying to squeeze every last byte.
+ * Setting a lower value is prevented at startup. */
+static constexpr unsigned int MINIMUM_BLOCK_RESERVED_WEIGHT{2000};
 /** Default for -blockmintxfee, which sets the minimum feerate for a transaction in blocks created by mining code **/
 static constexpr unsigned int DEFAULT_BLOCK_MIN_TX_FEE{1000};
 /** The maximum weight for transactions we're willing to relay/mine */
@@ -42,8 +51,11 @@ static constexpr unsigned int MIN_STANDARD_TX_NONWITNESS_SIZE{65};
 static constexpr unsigned int MAX_P2SH_SIGOPS{15};
 /** The maximum number of sigops we're willing to relay/mine in a single tx */
 static constexpr unsigned int MAX_STANDARD_TX_SIGOPS_COST{MAX_BLOCK_SIGOPS_COST/5};
+/** The maximum number of potentially executed legacy signature operations in a single standard tx */
+static constexpr unsigned int MAX_TX_LEGACY_SIGOPS{2'500};
 /** Default for -incrementalrelayfee, which sets the minimum feerate increase for mempool limiting or replacement **/
 static constexpr unsigned int DEFAULT_INCREMENTAL_RELAY_FEE{1000};
+static constexpr CAmount CORE_INCREMENTAL_RELAY_FEE{100};
 /** Default for -maxscriptsize */
 static constexpr unsigned int DEFAULT_SCRIPT_SIZE_POLICY_LIMIT{1650};
 /** Default for -bytespersigop */
@@ -54,6 +66,17 @@ static constexpr unsigned int DEFAULT_BYTES_PER_SIGOP_STRICT{20};
 static constexpr unsigned int DEFAULT_WEIGHT_PER_DATA_BYTE{4};
 /** Default for -rejecttokens */
 static constexpr bool DEFAULT_REJECT_TOKENS{false};
+
+// NOTE: Changes to these three require manually adjusting doc in init.cpp
+/** Default for -permitephemeral=send */
+static constexpr bool DEFAULT_PERMITEPHEMERAL_SEND{false};
+/** Default for -permitephemeral=dust */
+static constexpr bool DEFAULT_PERMITEPHEMERAL_DUST{false};
+/** Default for -permitephemeral=anchor */
+static constexpr bool DEFAULT_PERMITEPHEMERAL_ANCHOR{true};
+
+/** Default for -permitbareanchor */
+static constexpr bool DEFAULT_PERMITBAREANCHOR{true};
 /** Default for -permitbarepubkey */
 static constexpr bool DEFAULT_PERMIT_BAREPUBKEY{false};
 /** Default for -permitbaremultisig */
@@ -95,6 +118,8 @@ static const bool DEFAULT_ACCEPT_DATACARRIER = true;
  * Default setting for -datacarriersize. 40 bytes of data, +1 for OP_RETURN,
  * +1 for the pushdata opcode.
  */
+/** Default for -permitbaredatacarrier */
+static const bool DEFAULT_PERMITBAREDATACARRIER{false};
 static constexpr unsigned int MAX_OP_RETURN_RELAY{42};
 /** Default for -datacarrierfullcount */
 static constexpr bool DEFAULT_DATACARRIER_FULLCOUNT{true};
@@ -105,6 +130,10 @@ static constexpr bool DEFAULT_DATACARRIER_FULLCOUNT{true};
  */
 static constexpr unsigned int EXTRA_DESCENDANT_TX_SIZE_LIMIT{10000};
 
+/**
+ * Maximum number of ephemeral dust outputs allowed.
+ */
+static constexpr unsigned int MAX_DUST_OUTPUTS_PER_TX{1};
 
 /**
  * Mandatory script verification flags that all new transactions must comply with for
@@ -158,6 +187,8 @@ bool IsDust(const CTxOut& txout, const CFeeRate& dustRelayFee);
 
 bool IsStandard(const CScript& scriptPubKey, const std::optional<unsigned>& max_datacarrier_bytes, TxoutType& whichType);
 
+/** Get the vout index numbers of all dust outputs */
+std::vector<uint32_t> GetDust(const CTransaction& tx, CFeeRate dust_relay_rate);
 
 // Changing the default transaction version requires a two step process: first
 // adapting relay policy by bumping TX_MAX_STANDARD_VERSION, and then later
@@ -174,12 +205,7 @@ bool IsStandardTx(const CTransaction& tx, const kernel::MemPoolOptions& opts, st
 * @param[in] mapInputs       Map of previous transactions that have outputs we're spending
 * @return True if all inputs (scriptSigs) use only standard transaction forms
 */
-bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs, const std::string& reason_prefix, std::string& out_reason, const ignore_rejects_type& ignore_rejects=empty_ignore_rejects);
-
-inline bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs) {
-    std::string reason;
-    return AreInputsStandard(tx, mapInputs, reason, reason);
-}
+bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs, const kernel::MemPoolOptions& opts, const std::string& reason_prefix, std::string& out_reason, const ignore_rejects_type& ignore_rejects=empty_ignore_rejects);
 
 /**
 * Check if the transaction is over standard P2WSH resources limit:

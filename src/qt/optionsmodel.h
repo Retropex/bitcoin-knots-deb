@@ -88,10 +88,13 @@ public:
         incrementalrelayfee,
         mempoolexpiry,
         rejectunknownscripts,   // bool
+        rejectunknownwitness,   // bool
         rejectparasites,        // bool
         rejecttokens,           // bool
         rejectspkreuse,         // bool
         minrelaytxfee,
+        minrelaycoinblocks,
+        minrelaymaturity,
         bytespersigop,
         bytespersigopstrict,
         limitancestorcount,
@@ -100,7 +103,11 @@ public:
         limitdescendantsize,
         rejectbarepubkey,       // bool
         rejectbaremultisig,     // bool
+        permitephemeral,
+        rejectbareanchor,       // bool
+        rejectbaredatacarrier,  // bool
         maxscriptsize,
+        maxtxlegacysigops,
         datacarriercost,        // double
         datacarriersize,
         rejectnonstddatacarrier,  // bool
@@ -111,6 +118,7 @@ public:
         blockprioritysize,
         blockmaxweight,
         blockreconstructionextratxn,
+        blockreconstructionextratxnsize,
         corepolicy,
         OptionIDRowCount,
     };
@@ -141,7 +149,7 @@ public:
     BitcoinUnit getDisplayUnit() const { return m_display_bitcoin_unit; }
     bool getDisplayAddresses() const { return bDisplayAddresses; }
     QString getThirdPartyTxUrls() const { return strThirdPartyTxUrls; }
-    QFont getFontForMoney() const;
+    QFont getFontForMoney(BitcoinUnit) const;
     FontChoice getFontChoiceForQRCodes() const { return m_font_qrcodes; }
     bool getPeersTabAlternatingRowColors() const { return m_peers_tab_alternating_row_colors; }
     bool getCoinControlFeatures() const { return fCoinControlFeatures; }
@@ -172,6 +180,7 @@ private:
     bool bDisplayAddresses;
     QString strThirdPartyTxUrls;
     FontChoice m_font_money{FontChoiceAbstract::EmbeddedFont};
+    bool m_font_money_supports_tonal;
     FontChoice m_font_qrcodes{FontChoiceAbstract::EmbeddedFont};
     bool m_peers_tab_alternating_row_colors;
     bool fCoinControlFeatures;

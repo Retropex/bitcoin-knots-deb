@@ -2,7 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <config/bitcoin-config.h> // IWYU pragma: keep
+#include <bitcoin-build-config.h> // IWYU pragma: keep
 
 #include <chainparams.h>
 #include <qt/intro.h>
@@ -45,7 +45,6 @@ public:
     enum Status {
         ST_OK,
         ST_ERROR
-        ,ST_WARNING
     };
 
 public Q_SLOTS:
@@ -101,13 +100,6 @@ void FreespaceChecker::check()
                 replyMessage = tr("Path already exists, and is not a directory.");
             }
         }
-#ifdef __APPLE__
-        const FSType fs_type = GetFilesystemType(parentDir);
-        if (fs_type == FSType::EXFAT) {
-            replyStatus = ST_WARNING;
-            replyMessage = tr("Path is on ExFAT filesystem, known to cause corruption on macOS.");
-        }
-#endif
     } catch (const fs::filesystem_error&)
     {
         /* Parent directory does not exist or is not accessible */
@@ -135,16 +127,16 @@ Intro::Intro(QWidget *parent, int64_t blockchain_size_gb, int64_t chain_state_si
     m_prune_target_mib{GetPruneTargetMiB()}
 {
     ui->setupUi(this);
-    ui->welcomeLabel->setText(ui->welcomeLabel->text().arg(PACKAGE_NAME));
-    ui->storageLabel->setText(ui->storageLabel->text().arg(PACKAGE_NAME));
+    ui->welcomeLabel->setText(ui->welcomeLabel->text().arg(CLIENT_NAME));
+    ui->storageLabel->setText(ui->storageLabel->text().arg(CLIENT_NAME));
 
     ui->lblExplanation1->setText(ui->lblExplanation1->text()
-        .arg(PACKAGE_NAME)
+        .arg(CLIENT_NAME)
         .arg(m_blockchain_size_gb)
         .arg(2009)
         .arg(tr("Bitcoin"))
     );
-    ui->lblExplanation2->setText(ui->lblExplanation2->text().arg(PACKAGE_NAME));
+    ui->lblExplanation2->setText(ui->lblExplanation2->text().arg(CLIENT_NAME));
 
     const int min_prune_target_MiB = (MIN_DISK_SPACE_FOR_BLOCK_FILES + MiB_BYTES - 1) / MiB_BYTES;
     ui->pruneMiB->setRange(min_prune_target_MiB, std::numeric_limits<int>::max());
@@ -167,7 +159,11 @@ Intro::Intro(QWidget *parent, int64_t blockchain_size_gb, int64_t chain_state_si
     ui->lblPruneSuffix->setToolTip(ui->prune->toolTip());
     UpdatePruneLabels(ui->prune->checkState() == Qt::Checked);
 
-    connect(ui->prune, &QCheckBox::stateChanged, [this](int prune_state) {
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 7, 0))
+    connect(ui->prune, &QCheckBox::checkStateChanged, [this](const Qt::CheckState prune_state) {
+#else
+    connect(ui->prune, &QCheckBox::stateChanged, [this](const int prune_state) {
+#endif
         m_prune_checkbox_is_default = false;
         UpdatePruneLabels(prune_state == Qt::Checked);
         UpdateFreeSpaceLabel();
@@ -181,14 +177,15 @@ Intro::Intro(QWidget *parent, int64_t blockchain_size_gb, int64_t chain_state_si
     bool have_user_assumevalid = false;
     if (gArgs.IsArgSet("-assumevalid")) {
         const auto user_assumevalid = gArgs.GetArg("-assumevalid", /* ignored default; determines return type */ "");
-        if (uint256S(user_assumevalid).IsNull()) {
-            // -assumevalid=0: default checkbox to off, and initialise with chainparams later
-            ui->assumevalid->setChecked(false);
-        } else {
+        const auto block_hash{uint256::FromUserHex(user_assumevalid)};
+        if (block_hash && !block_hash->IsNull()) {
             // -assumevalid=blockhash: initialise with the user-specified value, enabled
             ui->assumevalid->setChecked(true);
             ui->assumevalidBlock->setText(QString::fromStdString(user_assumevalid));
             have_user_assumevalid = true;
+        } else {
+            // -assumevalid=0: default checkbox to off, and initialise with chainparams later
+            ui->assumevalid->setChecked(false);
         }
     }
     if (!have_user_assumevalid) {
@@ -303,7 +300,7 @@ bool Intro::showIfNeeded(std::unique_ptr<Intro>& intro)
                 }
                 break;
             } catch (const fs::filesystem_error&) {
-                QMessageBox::critical(nullptr, PACKAGE_NAME,
+                QMessageBox::critical(nullptr, CLIENT_NAME,
                     tr("Error: Specified data directory \"%1\" cannot be created.").arg(dataDir));
                 /* fall through, back to choosing screen */
             }
@@ -324,7 +321,6 @@ bool Intro::showIfNeeded(std::unique_ptr<Intro>& intro)
 
 void Intro::setStatus(int status, const QString &message, quint64 bytesAvailable)
 {
-    m_warning_msg = "";
     switch(status)
     {
     case FreespaceChecker::ST_OK:
@@ -333,11 +329,6 @@ void Intro::setStatus(int status, const QString &message, quint64 bytesAvailable
         break;
     case FreespaceChecker::ST_ERROR:
         ui->errorMessage->setText(tr("Error") + ": " + message);
-        ui->errorMessage->setStyleSheet("QLabel { color: #800000 }");
-        break;
-    case FreespaceChecker::ST_WARNING:
-        m_warning_msg = tr("Warning") + ": " + message;
-        ui->errorMessage->setText(m_warning_msg);
         ui->errorMessage->setStyleSheet("QLabel { color: #800000 }");
         break;
     }
@@ -354,14 +345,6 @@ void Intro::setStatus(int status, const QString &message, quint64 bytesAvailable
     }
     /* Don't allow confirm in ERROR state */
     ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(status != FreespaceChecker::ST_ERROR);
-}
-
-void Intro::accept()
-{
-    if ((!m_warning_msg.isEmpty()) && QMessageBox::warning(this, PACKAGE_NAME, m_warning_msg + "<br><br>" + tr("Ignore warning?"), QMessageBox::Ignore | QMessageBox::Cancel) == QMessageBox::Cancel) {
-        return;
-    }
-    QDialog::accept();
 }
 
 void Intro::UpdateFreeSpaceLabel()
@@ -457,7 +440,7 @@ void Intro::UpdatePruneLabels(bool prune_checked)
         //: Explanatory text on the capability of the current prune target.
         tr("(sufficient to restore backups %n day(s) old)", "", expected_backup_days));
     ui->sizeWarningLabel->setText(
-        tr("%1 will download and store a copy of the Bitcoin block chain.").arg(PACKAGE_NAME) + " " +
+        tr("%1 will download and store a copy of the Bitcoin block chain.").arg(CLIENT_NAME) + " " +
         storageRequiresMsg.arg(m_required_space_gb) + " " +
         tr("The wallet will also be stored in this directory.")
     );

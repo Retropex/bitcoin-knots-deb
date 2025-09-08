@@ -3,8 +3,6 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <config/bitcoin-config.h> // IWYU pragma: keep
-
 #include <util/time.h>
 
 #include <compat/compat.h>
@@ -19,23 +17,28 @@
 #include <string_view>
 #include <thread>
 
-#ifdef HAVE_CLOCK_GETTIME
-#include <time.h>
-#elif defined(HAVE_GETTHREADTIMES)
+#ifdef WIN32
 #include <windows.h>
 #include <winnt.h>
 
 #include <processthreadsapi.h>
+#else
+#include <ctime>
 #endif
 
 
 void UninterruptibleSleep(const std::chrono::microseconds& n) { std::this_thread::sleep_for(n); }
 
 static std::atomic<std::chrono::seconds> g_mock_time{}; //!< For testing
+std::atomic<bool> g_used_system_time{false};
+static std::atomic<std::chrono::milliseconds> g_mock_steady_time{}; //!< For testing
 
 NodeClock::time_point NodeClock::now() noexcept
 {
     const auto mocktime{g_mock_time.load(std::memory_order_relaxed)};
+    if (!mocktime.count()) {
+        g_used_system_time = true;
+    }
     const auto ret{
         mocktime.count() ?
             mocktime :
@@ -54,6 +57,30 @@ void SetMockTime(std::chrono::seconds mock_time_in)
 std::chrono::seconds GetMockTime()
 {
     return g_mock_time.load(std::memory_order_relaxed);
+}
+
+MockableSteadyClock::time_point MockableSteadyClock::now() noexcept
+{
+    const auto mocktime{g_mock_steady_time.load(std::memory_order_relaxed)};
+    if (!mocktime.count()) {
+        g_used_system_time = true;
+    }
+    const auto ret{
+        mocktime.count() ?
+            mocktime :
+            std::chrono::steady_clock::now().time_since_epoch()};
+    return time_point{ret};
+};
+
+void MockableSteadyClock::SetMockTime(std::chrono::milliseconds mock_time_in)
+{
+    Assert(mock_time_in >= 0s);
+    g_mock_steady_time.store(mock_time_in, std::memory_order_relaxed);
+}
+
+void MockableSteadyClock::ClearMockTime()
+{
+    g_mock_steady_time.store(0ms, std::memory_order_relaxed);
 }
 
 int64_t GetTime() { return GetTime<std::chrono::seconds>().count(); }
@@ -122,18 +149,13 @@ struct timeval MillisToTimeval(std::chrono::milliseconds ms)
 
 std::chrono::nanoseconds ThreadCpuTime()
 {
-#ifdef HAVE_CLOCK_GETTIME
-    // An alternative to clock_gettime() is getrusage().
-
+#ifdef CLOCK_THREAD_CPUTIME_ID
     timespec t;
     if (clock_gettime(CLOCK_THREAD_CPUTIME_ID, &t) == -1) {
         return std::chrono::nanoseconds{0};
     }
     return std::chrono::seconds{t.tv_sec} + std::chrono::nanoseconds{t.tv_nsec};
-#elif defined(HAVE_GETTHREADTIMES)
-    // An alternative to GetThreadTimes() is QueryThreadCycleTime() but it
-    // counts CPU cycles.
-
+#elif defined(WIN32)
     FILETIME creation;
     FILETIME exit;
     FILETIME kernel;
@@ -157,11 +179,8 @@ std::chrono::nanoseconds ThreadCpuTime()
     user_.LowPart = user.dwLowDateTime;
     user_.HighPart = user.dwHighDateTime;
 
-    // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadtimes
-    // "Thread kernel mode and user mode times are amounts of time. For example,
-    // if a thread has spent one second in kernel mode, this function will fill
-    // the FILETIME structure specified by lpKernelTime with a 64-bit value of
-    // ten million. That is the number of 100-nanosecond units in one second."
+    // The units of the returned values from GetThreadTimes() are "100-nanosecond periods".
+    // So, we multiply by 100 to get nanoseconds.
     return std::chrono::nanoseconds{(kernel_.QuadPart + user_.QuadPart) * 100};
 #else
     return std::chrono::nanoseconds{0};

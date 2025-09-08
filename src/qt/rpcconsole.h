@@ -5,7 +5,7 @@
 #ifndef BITCOIN_QT_RPCCONSOLE_H
 #define BITCOIN_QT_RPCCONSOLE_H
 
-#include <config/bitcoin-config.h> // IWYU pragma: keep
+#include <bitcoin-build-config.h> // IWYU pragma: keep
 
 #include <qt/clientmodel.h>
 #include <qt/guiutil.h>
@@ -34,7 +34,10 @@ namespace Ui {
 }
 
 QT_BEGIN_NAMESPACE
+class QColor;
+class QEvent;
 class QDateTime;
+class QLabel;
 class QMenu;
 class QItemSelection;
 QT_END_NAMESPACE
@@ -45,6 +48,10 @@ class RPCConsole: public QWidget
     Q_OBJECT
 
 public:
+    struct ThemeColors {
+        QColor warning;
+        QColor userinput;
+    };
     explicit RPCConsole(interfaces::Node& node, const PlatformStyle *platformStyle, QWidget *parent);
     ~RPCConsole();
 
@@ -81,6 +88,8 @@ public:
 
     QString tabTitle(TabTypes tab_type) const;
     QKeySequence tabShortcut(TabTypes tab_type) const;
+
+    QLabel *m_label_softwareexpiry;
 
 protected:
     virtual bool eventFilter(QObject* obj, QEvent *event) override;
@@ -190,6 +199,9 @@ private:
     QByteArray m_banlist_widget_header_state;
     bool m_alternating_row_colors{false};
 
+    // Theme Colors
+    const ThemeColors *m_theme_colors;
+
     /** Update UI with latest network info from model. */
     void updateNetworkState();
 
@@ -200,6 +212,8 @@ private:
     }
 
     void updateWindowTitle();
+    void updateThemeColors();
+    void updateConsoleStyleSheet();
 
 private Q_SLOTS:
     void updateAlerts(const QString& warnings);

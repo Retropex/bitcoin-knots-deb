@@ -13,6 +13,7 @@
 
 #include <QApplication>
 #include <QEvent>
+#include <QFont>
 #include <QHeaderView>
 #include <QItemDelegate>
 #include <QLabel>
@@ -47,6 +48,7 @@ class QFont;
 class QKeySequence;
 class QLineEdit;
 class QMenu;
+class QColor;
 class QPoint;
 class QProgressDialog;
 class QUrl;
@@ -68,6 +70,8 @@ namespace GUIUtil
 
     // Return a monospace font
     QFont fixedPitchFont(bool use_embedded_font = false);
+
+    QString fontToCss(const QFont& font);
 
     // Set up widget for address
     void setupAddressWidget(QValidatedLineEdit *widget, QWidget *parent);
@@ -289,6 +293,9 @@ namespace GUIUtil
 
     QString formatBytes(uint64_t bytes);
     QString formatBytesps(float bytes);
+
+    /** Check if a background color indicates dark mode */
+    bool isDarkMode(const QColor& color);
 
     qreal calculateIdealFontSize(int width, const QString& text, QFont font, qreal minPointSize = 4, qreal startPointSize = 14);
 

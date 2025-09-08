@@ -24,11 +24,12 @@ class UacommentTest(BitcoinTestFramework):
         self.restart_node(0, ["-uacomment=foo"])
         foo_uacomment = self.nodes[0].getnetworkinfo()["subversion"]
         assert "(testnode0; foo)" in foo_uacomment
+        foo_uacomment_len = len(foo_uacomment)
 
         self.log.info("test -uacomment max length")
         self.stop_node(0)
         expected = r"Error: Total length of network version string \([0-9]+\) exceeds maximum length \(256\). Reduce the number or size of uacomments."
-        self.nodes[0].assert_start_raises_init_error(["-uacomment=" + 'a' * 256], expected, match=ErrorMatch.FULL_REGEX)
+        self.nodes[0].assert_start_raises_init_error(["-uacomment=foo" + ('a' * (257 - foo_uacomment_len))], expected, match=ErrorMatch.FULL_REGEX)
 
         self.log.info("test -uacomment unsafe characters")
         for unsafe_char in ['/', ':', '(', ')', '₿', '🏃']:
@@ -41,6 +42,27 @@ class UacommentTest(BitcoinTestFramework):
 
         self.restart_node(0, ["-uaappend=foo:9/"])
         assert_equal(self.nodes[0].getnetworkinfo()["subversion"][-7:], '/foo:9/')
+
+        self.nodes[0].args.remove("-uacomment=testnode0")
+
+        self.log.info("test -uaspoof")
+        self.restart_node(0, ["-uaspoof=/foo:0/"])
+        assert_equal(self.nodes[0].getnetworkinfo()["subversion"], '/foo:0/')
+
+        exp_warning = "Specified uaspoof option is not in BIP 14 format. User-agent strings should look like '/Name:Version/Name:Version/.../'."
+        with self.nodes[0].assert_debug_log(expected_msgs=[exp_warning]):
+            self.restart_node(0, ["-uaspoof=foo:9"])
+            assert_equal(self.nodes[0].getnetworkinfo()["subversion"], 'foo:9')
+            self.stop_node(0, expected_stderr='Warning: ' + exp_warning)
+
+        exp_warning = 'Both uaspoof and uacomment(s) are specified, but uacomment(s) are ignored when uaspoof is in use.'
+        with self.nodes[0].assert_debug_log(expected_msgs=[exp_warning]):
+            self.restart_node(0, ["-uaspoof=/foo:0/", "-uacomment=foo"])
+            assert_equal(self.nodes[0].getnetworkinfo()["subversion"], '/foo:0/')
+            self.stop_node(0, expected_stderr='Warning: ' + exp_warning)
+
+        self.restart_node(0, ["-uaspoof=/foo:0/", "-uaappend=foo:9"])
+        assert_equal(self.nodes[0].getnetworkinfo()["subversion"], '/foo:0/foo:9/')
 
 
 if __name__ == '__main__':

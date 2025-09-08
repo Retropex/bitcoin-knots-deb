@@ -130,7 +130,7 @@ BOOST_AUTO_TEST_CASE(rpc_namedonlyparams)
 
     // Make sure options object specified through args array conflicts.
     BOOST_CHECK_EXCEPTION(TransformParams(JSON(R"({"args": [1, 2, {"opt1": 10}], "opt2": 20})"), arg_names), UniValue,
-                          HasJSON(R"({"code":-8,"message":"Parameter options specified twice both as positional and named argument"})"));
+                          HasJSON(R"({"code":-8,"message":"Cannot specify both 'options' and named parameter opt2"})"));
 }
 
 BOOST_AUTO_TEST_CASE(rpc_rawparams)
@@ -439,6 +439,7 @@ BOOST_AUTO_TEST_CASE(rpc_getblockstats_calculate_percentiles_by_weight)
 {
     int64_t total_weight = 200;
     std::vector<std::pair<CAmount, int64_t>> feerates;
+    feerates.reserve(200);
     CAmount result[NUM_GETBLOCKSTATS_PERCENTILES] = { 0 };
 
     for (int64_t i = 0; i < 100; i++) {

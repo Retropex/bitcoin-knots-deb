@@ -8,12 +8,16 @@
 #include <qt/guiutil.h>
 
 #include <QMouseEvent>
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+#include <QtNumeric>
+#endif
 #include <QPainter>
 #include <QPainterPath>
 #include <QColor>
 #include <QTimer>
 #include <QToolTip>
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 
@@ -49,6 +53,7 @@ std::chrono::minutes TrafficGraphWidget::getGraphRange() const { return m_range;
 
 int TrafficGraphWidget::y_value(float value)
 {
+    if (fMax == 0) return 0;
     int h = height() - YMARGIN * 2;
     return YMARGIN + h - (h * 1.0 * (fToggle ? (pow(value, 0.30102) / pow(fMax, 0.30102)) : (value / fMax)));
 }
@@ -76,21 +81,22 @@ void TrafficGraphWidget::mousePressEvent(QMouseEvent *event)
     update();
 }
 
-float floatmax(float a, float b)
-{
-    if (a > b) return a;
-    else return b;
-}
-
 void TrafficGraphWidget::mouseMoveEvent(QMouseEvent *event)
 {
     QWidget::mouseMoveEvent(event);
     static int last_x = -1;
     static int last_y = -1;
-    int x = event->x();
-    int y = event->y();
-    x_offset = event->globalX() - x;
-    y_offset = event->globalY() - y;
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+    const QPointF event_local_pos = event->position();
+    const QPointF event_global_pos = event->globalPosition();
+#else
+    const QPointF event_local_pos = event->localPos();
+    const QPointF event_global_pos = event->screenPos();
+#endif
+    int x = qRound(event_local_pos.x());
+    int y = qRound(event_local_pos.y());
+    x_offset = qRound(event_global_pos.x()) - x;
+    y_offset = qRound(event_global_pos.y()) - y;
     if (last_x == x && last_y == y) return; // Do nothing if mouse hasn't moved
     int h = height() - YMARGIN * 2, w = width() - XMARGIN * 2;
     int i = (w + XMARGIN - x) * DESIRED_SAMPLES / w;
@@ -98,7 +104,7 @@ void TrafficGraphWidget::mouseMoveEvent(QMouseEvent *event)
     int sampleSize = vTimeStamp.size();
     if (sampleSize && i >= -10 && i < sampleSize + 2 && y <= h + YMARGIN + 3) {
         for (int test_i = std::max(i - 2, 0); test_i < std::min(i + 10, sampleSize); test_i++) {
-            float val = floatmax(vSamplesIn.at(test_i), vSamplesOut.at(test_i));
+            float val = std::max(vSamplesIn.at(test_i), vSamplesOut.at(test_i));
             int y_data = y_value(val);
             unsigned int distance = abs(y - y_data);
             if (distance < smallest_distance) {
@@ -181,7 +187,7 @@ void TrafficGraphWidget::paintEvent(QPaintEvent *)
         painter.setPen(Qt::yellow);
         int w = width() - XMARGIN * 2;
         int x = XMARGIN + w - w * ttpoint / DESIRED_SAMPLES;
-        int y = y_value(floatmax(vSamplesIn.at(ttpoint), vSamplesOut.at(ttpoint)));
+        int y = y_value(std::max(vSamplesIn.at(ttpoint), vSamplesOut.at(ttpoint)));
         painter.drawEllipse(QPointF(x, y), 3, 3);
         QString strTime;
         int64_t sampleTime = vTimeStamp.at(ttpoint);

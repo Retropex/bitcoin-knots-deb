@@ -2,9 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
-#endif
+#include <bitcoin-build-config.h> // IWYU pragma: keep
 
 #include <qt/netwatch.h>
 
@@ -36,6 +34,7 @@
 #include <QHBoxLayout>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QRegularExpression>
 #include <QScrollBar>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -338,7 +337,7 @@ QVariant NetWatchLogModel::data(const CBlockIndex& blockindex, int txout_index, 
             }
             CBlock block;
             Assert(m_client_model && m_client_model->node().context());
-            if (!m_client_model->node().context()->chainman->m_blockman.ReadBlockFromDisk(block, blockindex)) {
+            if (!m_client_model->node().context()->chainman->m_blockman.ReadBlock(block, blockindex)) {
                 // Indicate error somehow?
                 return QVariant();
             }
@@ -469,6 +468,10 @@ QVariant NetWatchLogModel::data(const QModelIndex& index, int role) const
             if (header == Header::Id) {
                 return GUIUtil::fixedPitchFont();
             }
+            if (header == Header::Value) {
+                const auto display_unit = m_client_model->getOptionsModel()->getDisplayUnit();
+                return m_client_model->getOptionsModel()->getFontForMoney(display_unit);
+            }
             return QVariant();
         default:
             return QVariant();
@@ -517,11 +520,11 @@ QVariant NetWatchLogModel::headerData(int section, Qt::Orientation orientation, 
 NetWatchLogSearch::NetWatchLogSearch(const QString& query, BitcoinUnit display_unit) :
     m_query(query)
 {
-    const QRegExp reHex("^[\\da-f]+$", Qt::CaseInsensitive, QRegExp::RegExp2);
-    const QRegExp reType("^(T(xn?)?|B(lk?)?)$", Qt::CaseInsensitive, QRegExp::RegExp2);
+    const QRegularExpression reHex("^[\\da-f]+$", QRegularExpression::CaseInsensitiveOption);
+    const QRegularExpression reType("^(T(xn?)?|B(lk?)?)$", QRegularExpression::CaseInsensitiveOption);
 
-    m_check_type = m_query.length() < 4 && reType.exactMatch(m_query);
-    m_check_id = m_query.length() <= 64 && reHex.exactMatch(m_query);
+    m_check_type = m_query.length() < 4 && reType.match(m_query).hasMatch();
+    m_check_id = m_query.length() <= 64 && reHex.match(m_query).hasMatch();
     m_check_addr = m_query.length() <= LONGEST_BECH32_ADDRESS;
     CAmount val;
     m_check_value = BitcoinUnits::parse(display_unit, m_query, &val) && val >= 0 && val <= BitcoinUnits::maxMoney();
@@ -657,7 +660,7 @@ void NetWatchLogModel::LogBlock(const CBlockIndex* pblockindex, const std::share
     if (!block) {
         std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();
         Assert(m_client_model && m_client_model->node().context());
-        if (!m_client_model->node().context()->chainman->m_blockman.ReadBlockFromDisk(*pblock, *pblockindex)) {
+        if (!m_client_model->node().context()->chainman->m_blockman.ReadBlock(*pblock, *pblockindex)) {
             // Indicate error somehow?
             return;
         }
@@ -681,10 +684,12 @@ void NetWatchLogModel::setClientModel(ClientModel *model)
         m_validation_interface = nullptr;
 
         disconnect(m_client_model->getOptionsModel(), &OptionsModel::displayUnitChanged, this, &NetWatchLogModel::updateDisplayUnit);
+        disconnect(m_client_model->getOptionsModel(), &OptionsModel::fontForMoneyChanged, this, &NetWatchLogModel::updateDisplayUnit);
     }
     m_client_model = model;
     if (model) {
         connect(model->getOptionsModel(), &OptionsModel::displayUnitChanged, this, &NetWatchLogModel::updateDisplayUnit);
+        connect(model->getOptionsModel(), &OptionsModel::fontForMoneyChanged, this, &NetWatchLogModel::updateDisplayUnit);
 
         Assert(model->node().context()->validation_signals);
         m_validation_interface = new NetWatchValidationInterface(*this);
@@ -757,7 +762,7 @@ GuiNetWatch::GuiNetWatch(const PlatformStyle *platformStyle, const NetworkStyle 
     }
     layout->addWidget(m_log_view);
 
-    setWindowTitle(tr(PACKAGE_NAME) + " - " + tr("Network Watch") + " " + networkStyle->getTitleAddText());
+    setWindowTitle(tr(CLIENT_NAME) + " - " + tr("Network Watch") + " " + networkStyle->getTitleAddText());
     setMinimumSize(640, 480);
     resize(layout->contentsMargins().left() + (m_log_view->frameWidth() * 2) + m_log_view->columnViewportPosition(NetWatchLogModel::HeaderCount-1) + m_log_view->columnWidth(NetWatchLogModel::HeaderCount-1) + m_log_view->verticalScrollBar()->size().width() + layout->contentsMargins().right(), 480);
     setWindowIcon(networkStyle->getTrayAndWindowIcon());

@@ -3,7 +3,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <config/bitcoin-config.h> // IWYU pragma: keep
+#include <bitcoin-build-config.h> // IWYU pragma: keep
 
 #include <core_io.h>
 #include <key_io.h>
@@ -62,6 +62,7 @@ static RPCHelpMan getwalletinfo()
                         {RPCResult::Type::NUM, "keypoolsize", "how many new keys are pre-generated (only counts external keys)"},
                         {RPCResult::Type::NUM, "keypoolsize_hd_internal", /*optional=*/true, "how many new keys are pre-generated for internal use (used for change outputs, only appears if the wallet is using this feature, otherwise external keys are used)"},
                         {RPCResult::Type::NUM_TIME, "unlocked_until", /*optional=*/true, "the " + UNIX_EPOCH_TIME + " until which the wallet is unlocked for transfers, or 0 if the wallet is locked (only present for passphrase-encrypted wallets)"},
+                        {RPCResult::Type::STR_AMOUNT, "mintxfee", "the minimum transaction fee configuration, set in " + CURRENCY_UNIT + "/kvB"},
                         {RPCResult::Type::STR_AMOUNT, "paytxfee", "the transaction fee configuration, set in " + CURRENCY_UNIT + "/kvB"},
                         {RPCResult::Type::STR_HEX, "hdseedid", /*optional=*/true, "the Hash160 of the HD seed (only present when HD is enabled)"},
                         {RPCResult::Type::BOOL, "private_keys_enabled", "false if privatekeys are disabled for this wallet (enforced watch-only wallet)"},
@@ -124,6 +125,7 @@ static RPCHelpMan getwalletinfo()
     if (pwallet->IsCrypted()) {
         obj.pushKV("unlocked_until", pwallet->nRelockTime);
     }
+    obj.pushKV("mintxfee", ValueFromAmount(pwallet->m_min_fee.GetFeePerK()));
     obj.pushKV("paytxfee", ValueFromAmount(pwallet->m_pay_tx_fee.GetFeePerK()));
     obj.pushKV("private_keys_enabled", !pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS));
     obj.pushKV("avoid_reuse", pwallet->IsWalletFlagSet(WALLET_FLAG_AVOID_REUSE));
@@ -223,7 +225,7 @@ static RPCHelpMan loadwallet()
                 "\nNote that all wallet command-line options used when starting bitcoind will be"
                 "\napplied to the new wallet.\n",
                 {
-                    {"filename", RPCArg::Type::STR, RPCArg::Optional::NO, "The wallet directory or .dat file."},
+                    {"filename", RPCArg::Type::STR, RPCArg::Optional::NO, "The path to the directory of the wallet to be loaded, either absolute or relative to the \"wallets\" directory. The \"wallets\" directory is set by the -walletdir option and defaults to the \"wallets\" folder within the data directory."},
                     {"load_on_startup", RPCArg::Type::BOOL, RPCArg::Optional::OMITTED, "Save wallet name to persistent settings and load on startup. True to add wallet to startup list, false to remove, null to leave unchanged."},
                 },
                 RPCResult{
@@ -237,8 +239,15 @@ static RPCHelpMan loadwallet()
                     }
                 },
                 RPCExamples{
-                    HelpExampleCli("loadwallet", "\"test.dat\"")
-            + HelpExampleRpc("loadwallet", "\"test.dat\"")
+                    "\nLoad wallet from the wallet dir:\n"
+                    + HelpExampleCli("loadwallet", "\"walletname\"")
+                    + HelpExampleRpc("loadwallet", "\"walletname\"")
+                    + "\nLoad wallet using absolute path (Unix):\n"
+                    + HelpExampleCli("loadwallet", "\"/path/to/walletname/\"")
+                    + HelpExampleRpc("loadwallet", "\"/path/to/walletname/\"")
+                    + "\nLoad wallet using absolute path (Windows):\n"
+                    + HelpExampleCli("loadwallet", "\"DriveLetter:\\path\\to\\walletname\\\"")
+                    + HelpExampleRpc("loadwallet", "\"DriveLetter:\\path\\to\\walletname\\\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -469,8 +478,8 @@ static RPCHelpMan createwallet()
 static RPCHelpMan unloadwallet()
 {
     return RPCHelpMan{"unloadwallet",
-                "Unloads the wallet referenced by the request endpoint, otherwise unloads the wallet specified in the argument.\n"
-                "Specifying the wallet name on a wallet endpoint is invalid.",
+                "Unloads the wallet referenced by the request endpoint or the wallet_name argument.\n"
+                "If both are specified, they must be identical.",
                 {
                     {"wallet_name", RPCArg::Type::STR, RPCArg::DefaultHint{"the wallet name from the RPC endpoint"}, "The name of the wallet to unload. If provided both here and in the RPC endpoint, the two must be identical."},
                     {"load_on_startup", RPCArg::Type::BOOL, RPCArg::Optional::OMITTED, "Save wallet name to persistent settings and load on startup. True to add wallet to startup list, false to remove, null to leave unchanged."},
@@ -487,14 +496,7 @@ static RPCHelpMan unloadwallet()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    std::string wallet_name;
-    if (GetWalletNameFromJSONRPCRequest(request, wallet_name)) {
-        if (!(request.params[0].isNull() || request.params[0].get_str() == wallet_name)) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "RPC endpoint wallet and wallet_name parameter specify different wallets");
-        }
-    } else {
-        wallet_name = request.params[0].get_str();
-    }
+    const std::string wallet_name{EnsureUniqueWalletName(request, self.MaybeArg<std::string>("wallet_name"))};
 
     WalletContext& context = EnsureWalletContext(request.context);
     std::shared_ptr<CWallet> wallet;
@@ -809,17 +811,7 @@ static RPCHelpMan migratewallet()
             // New wallets do not necessarily have the same name as the migrated wallet
             EnsureNotWalletRestricted(request);
 
-            std::string wallet_name;
-            if (GetWalletNameFromJSONRPCRequest(request, wallet_name)) {
-                if (!(request.params[0].isNull() || request.params[0].get_str() == wallet_name)) {
-                    throw JSONRPCError(RPC_INVALID_PARAMETER, "RPC endpoint wallet and wallet_name parameter specify different wallets");
-                }
-            } else {
-                if (request.params[0].isNull()) {
-                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Either RPC endpoint wallet or wallet_name parameter must be provided");
-                }
-                wallet_name = request.params[0].get_str();
-            }
+            const std::string wallet_name{EnsureUniqueWalletName(request, self.MaybeArg<std::string>("wallet_name"))};
 
             SecureString wallet_pass;
             wallet_pass.reserve(100);

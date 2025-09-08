@@ -100,7 +100,7 @@ static RPCHelpMan ping()
 {
     return RPCHelpMan{"ping",
                 "\nRequests that a ping be sent to all other nodes, to measure ping time.\n"
-                "Results provided in getpeerinfo, pingtime and pingwait fields are decimal seconds.\n"
+                "Results are provided in getpeerinfo.\n"
                 "Ping command is handled in queue with all other commands, so it measures processing backlog, not just network ping.\n",
                 {},
                 RPCResult{RPCResult::Type::NONE, "", ""},
@@ -161,18 +161,18 @@ static RPCHelpMan getpeerinfo()
                     {RPCResult::Type::NUM_TIME, "lastrecv", "The " + UNIX_EPOCH_TIME + " of the last receive"},
                     {RPCResult::Type::NUM_TIME, "last_transaction", "The " + UNIX_EPOCH_TIME + " of the last valid transaction received from this peer"},
                     {RPCResult::Type::NUM_TIME, "last_block", "The " + UNIX_EPOCH_TIME + " of the last block received from this peer"},
+                    {RPCResult::Type::NUM_TIME, "last_block_announcement", "The " + UNIX_EPOCH_TIME + " this peer was first to announce a block"},
                     {RPCResult::Type::NUM, "bytessent", "The total bytes sent"},
                     {RPCResult::Type::NUM, "bytesrecv", "The total bytes received"},
-                    {RPCResult::Type::NUM, "cpu_load", /*optional=*/true,
-                        "The CPU time (user + system) spent processing messages from this peer "
-                        "and crafting messages for it expressed in per milles (‰) of the "
-                        "duration of the connection. Will be omitted on platforms that do not "
-                        "support this or if still not measured."},
+                    {RPCResult::Type::NUM, "cpu_load", /*optional=*/true, "Total CPU time spent processing "
+                        "messages to/from the peer, in per milles (‰) of the connection duration, if "
+                        "supported by the platform and measured. High CPU time is not necessarily a bad "
+                        "thing - new valid transactions and blocks require it be validated."},
                     {RPCResult::Type::NUM_TIME, "conntime", "The " + UNIX_EPOCH_TIME + " of the connection"},
                     {RPCResult::Type::NUM, "timeoffset", "The time offset in seconds"},
-                    {RPCResult::Type::NUM, "pingtime", /*optional=*/true, "The last ping time in milliseconds (ms), if any"},
-                    {RPCResult::Type::NUM, "minping", /*optional=*/true, "The minimum observed ping time in milliseconds (ms), if any"},
-                    {RPCResult::Type::NUM, "pingwait", /*optional=*/true, "The duration in milliseconds (ms) of an outstanding ping (if non-zero)"},
+                    {RPCResult::Type::NUM, "pingtime", /*optional=*/true, "The last ping time in seconds, if any"},
+                    {RPCResult::Type::NUM, "minping", /*optional=*/true, "The minimum observed ping time in seconds, if any"},
+                    {RPCResult::Type::NUM, "pingwait", /*optional=*/true, "The duration in seconds of an outstanding ping (if non-zero)"},
                     {RPCResult::Type::NUM, "version", "The peer version, such as 70001"},
                     {RPCResult::Type::STR, "subver", "The string version"},
                     {RPCResult::Type::BOOL, "inbound", "Inbound (true) or Outbound (false)"},
@@ -266,6 +266,7 @@ static RPCHelpMan getpeerinfo()
         obj.pushKV("lastrecv", count_seconds(stats.m_last_recv));
         obj.pushKV("last_transaction", count_seconds(stats.m_last_tx_time));
         obj.pushKV("last_block", count_seconds(stats.m_last_block_time));
+        obj.pushKV("last_block_announcement", TicksSinceEpoch<std::chrono::seconds>(statestats.m_last_block_announcement));
         obj.pushKV("bytessent", stats.nSendBytes);
         obj.pushKV("bytesrecv", stats.nRecvBytes);
         if (stats.m_cpu_time > 0s && now > stats.m_connected) {
@@ -1089,7 +1090,7 @@ static RPCHelpMan sendmsgtopeer()
         "This RPC is for testing only.",
         {
             {"peer_id", RPCArg::Type::NUM, RPCArg::Optional::NO, "The peer to send the message to."},
-            {"msg_type", RPCArg::Type::STR, RPCArg::Optional::NO, strprintf("The message type (maximum length %i)", CMessageHeader::COMMAND_SIZE)},
+            {"msg_type", RPCArg::Type::STR, RPCArg::Optional::NO, strprintf("The message type (maximum length %i)", CMessageHeader::MESSAGE_TYPE_SIZE)},
             {"msg", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The serialized message body to send, in hex, without a message header"},
         },
         RPCResult{RPCResult::Type::OBJ, "", "", std::vector<RPCResult>{}},
@@ -1098,8 +1099,8 @@ static RPCHelpMan sendmsgtopeer()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
             const NodeId peer_id{request.params[0].getInt<int64_t>()};
             const std::string& msg_type{request.params[1].get_str()};
-            if (msg_type.size() > CMessageHeader::COMMAND_SIZE) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Error: msg_type too long, max length is %i", CMessageHeader::COMMAND_SIZE));
+            if (msg_type.size() > CMessageHeader::MESSAGE_TYPE_SIZE) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Error: msg_type too long, max length is %i", CMessageHeader::MESSAGE_TYPE_SIZE));
             }
             auto msg{TryParseHex<unsigned char>(request.params[2].get_str())};
             if (!msg.has_value()) {

@@ -21,6 +21,26 @@ check_tools() {
     done
 }
 
+################
+# SOURCE_DATE_EPOCH should not unintentionally be set
+################
+
+check_source_date_epoch() {
+    if [ -n "$SOURCE_DATE_EPOCH" ] && [ -z "$FORCE_SOURCE_DATE_EPOCH" ]; then
+        cat << EOF
+ERR: Environment variable SOURCE_DATE_EPOCH is set which may break reproducibility.
+
+     Aborting...
+
+Hint: You may want to:
+      1. Unset this variable: \`unset SOURCE_DATE_EPOCH\` before rebuilding
+      2. Set the 'FORCE_SOURCE_DATE_EPOCH' environment variable if you insist on
+         using your own epoch
+EOF
+        exit 1
+    fi
+}
+
 check_tools cat env readlink dirname basename git
 
 ################
@@ -50,8 +70,8 @@ fi
 # across time.
 time-machine() {
     # shellcheck disable=SC2086
-    guix time-machine --url=https://git.savannah.gnu.org/git/guix.git \
-                      --commit=7bf1d7aeaffba15c4f680f93ae88fbef25427252 \
+    guix time-machine --url=https://codeberg.org/guix/guix.git \
+                      --commit=53396a22afc04536ddf75d8f82ad2eafa5082725 \
                       --cores="$JOBS" \
                       --keep-failed \
                       --fallback \
@@ -60,6 +80,37 @@ time-machine() {
                       -- "$@"
 }
 
+################
+guix_prefetch_temp=
+trap 'test -n "$guix_prefetch_temp" && rm -rf -- "$guix_prefetch_temp"' EXIT
+
+guix-prefetch() {
+    local hash="$1" uri="$2"
+    test -n "$guix_prefetch_temp" || guix_prefetch_temp="$(mktemp)"
+    cat > "$guix_prefetch_temp" << EOF
+(use-modules (guix packages)
+             (guix download)
+             (guix build-system trivial)
+             (guix licenses))
+
+(define-public dummy
+  (package
+    (name "dummy")
+    (version "0")
+    (source (origin
+              (method url-fetch)
+              (uri "${uri}")
+              (sha256 (base32 "${hash}"))))
+    (build-system trivial-build-system)
+    (synopsis "")
+    (description "")
+    (home-page "")
+    (license gpl3+)))
+
+dummy
+EOF
+    guix build -f "$guix_prefetch_temp" --source
+}
 
 ################
 # Set common variables

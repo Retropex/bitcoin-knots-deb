@@ -1,6 +1,6 @@
-Bitcoin Knots version 28.1.knots20250305 is now available from:
+Bitcoin Knots version 29.1.knots20250903 is now available from:
 
-  <https://bitcoinknots.org/files/28.x/28.1.knots20250305/>
+  <https://bitcoinknots.org/files/29.x/29.1.knots20250903/>
 
 This release includes new features, various bug fixes and performance
 improvements, as well as updated translations.
@@ -29,7 +29,7 @@ Compatibility
 ==============
 
 Bitcoin Knots is supported on operating systems using the Linux kernel, macOS
-11.0+, and Windows 7 and newer. It is not recommended to use Bitcoin Knots on
+13+, and Windows 10+. It is not recommended to use Bitcoin Knots on
 unsupported systems.
 
 Known Bugs
@@ -49,464 +49,443 @@ to do so until/unless that is resolved.
 Notable changes
 ===============
 
-P2P and Network Changes
------------------------
+### P2P and Network Changes
 
-- Previously if Bitcoin Knots was listening for P2P connections, either using
-  default settings or via `bind=addr:port` it would always also bind to
-  `127.0.0.1:8334` to listen for Tor connections. It was not possible to switch
-  this off, even if the node didn't use Tor. This has been changed and now
-  `bind=addr:port` results in binding on `addr:port` only. The default behavior
-  of binding to `0.0.0.0:8333` and `127.0.0.1:8334` has not been changed.
+- libnatpmp has been replaced with a built-in implementation of PCP and
+  NAT-PMP (still enabled or disabled using the `-natpmp` option). This
+  supports automatic IPv4 port forwarding as well as IPv6 pinholing. (#30043)
 
-  If you are using a `bind=...` configuration without `bind=...=onion` and rely
-  on the previous implied behavior to accept incoming Tor connections at
-  `127.0.0.1:8334`, you need to now make this explicit by using
-  `bind=... bind=127.0.0.1:8334=onion`. (#22729)
+- NAT-PMP is now enabled by default. This means nodes with `-listen` enabled
+  (the default) but running behind a firewall, such as a local network router,
+  will be reachable if the firewall/router supports either of the `PCP` or
+  `NAT-PMP` protocols. It can be turned off with the `-natpmp=0` option.
+  (#33004)
 
-- When the `-port` configuration option is used, the default onion listening
-  port will now be derived to be that port + 1 instead of being set to a fixed
-  value (8334 on mainnet). This enables setups with multiple local nodes using
-  different `-port` and not using `-bind`.
+- Upon receiving an orphan transaction (an unconfirmed transaction that spends unknown inputs), the node will attempt to download missing parents from all peers who announced the orphan. This change may increase bandwidth usage but make orphan-handling more reliable. (#31397)
 
-  Note that a `HiddenServicePort` manually configured in `torrc` may need
-  adjustment if used in connection with the `-port` option. For example, if you
-  are using `-port=5555` with a non-standard value and not using
-  `-bind=...=onion`, previously Bitcoin Knots would listen for incoming Tor
-  connections on `127.0.0.1:8334`. Now it would listen on `127.0.0.1:5556`
-  (`-port` plus one). If you configured the hidden service manually in torrc
-  now you have to change it from `HiddenServicePort 8333 127.0.0.1:8334` to
-  `HiddenServicePort 8333 127.0.0.1:5556`, or configure bitcoind with
-  `-bind=127.0.0.1:8334=onion` to get the previous behavior. (#31223)
+- In addition to the count-based `-blockreconstructionextratxn` limit on cached
+  transactions not accepted for relaying, a new
+  `-blockreconstructionextratxnsize` option has been added to set an upper
+  limit on the total memory usage consumed by this cache (10 MB by default).
 
-- Bitcoin Knots will now fail to start up if any of its P2P binds fail, rather
-  than the previous behaviour where it would only abort startup if all P2P
-  binds had failed. (#22729)
+- The default `-blockreconstructionextratxn` limit is increased to 32768
+  transactions.
 
-- Support for Testnet4 as specified in [BIP94](https://github.com/bitcoin/bips/blob/master/bip-0094.mediawiki)
-  has been added. The network can be selected with the `-testnet4` option and
-  the section header is also named `[testnet4]`.
-  While the intention is to phase out support for Testnet3 in an upcoming
-  version, support for it is still available via the known options in this
-  release. (#29775)
+- `-peerbloomfilters` is now restricted to localhost by default. If you use
+  BIP37 wallet software remotely, you should use the
+  `-whitelist bloomfilter@<IP>` configuration. You can also set
+  `-peerbloomfilters=0` to disable it for localhost, or `-peerbloomfilters=1`
+  if you wish to provide the service to the entire network. If you wish to
+  offer it publicly, do note that this service can be resource-intensive.
 
-- UNIX domain sockets can now be used for proxy connections. Set `-onion` or
-  `-proxy` to the local socket path with the prefix `unix:` (e.g.
-  `-onion=unix:/home/me/torsocket`). (#27375)
+### Mempool Policy and Mining Changes
 
-- Transactions having a feerate that is too low will be opportunistically
-  paired with their child transactions and submitted as a package, thus
-  enabling the node to download 1-parent-1-child packages using the existing
-  transaction relay protocol. Combined with other mempool policies, this change
-  allows limited "package relay" when a parent transaction is below the mempool
-  minimum feerate. Warning: this P2P feature is limited (unlike the
-  `submitpackage` interface, a child with multiple unconfirmed parents is not
-  supported) and not reliable. (#28970)
+- The `-maxscriptsize` policy now applies to the entire witness stack of each
+  input, to address attempts to evade overly-specific targetting.
 
-Mempool Policy Changes
-----------------------
+- Ephemeral anchors is a new concept that allows a single dummy recipient
+  in a transaction, provided the transaction is zero fee and the "anchor" is
+  immediately sent in another transaction broadcast together with it. This
+  allows for smart contracts such as Lightning where neither party can
+  unilaterally increase the transaction fee, yet using an anchor can create
+  a followup adding the necessary fee. (#30239)
+  By default, these anchors are accepted by Bitcoin Knots if and only if they
+  are minimal size and zero value. If you want a more flexible policy
+  (allowing for dummy sends and/or dust amounts), or wish to reject these new
+  anchors entirely, you can use the new `-permitephemeral` option.
+  There is also a `-permitbareanchor` option which permits (or forbids)
+  transaction that do not have real recipients (only an anchor). (knots#136)
 
-- Topologically Restricted Until Confirmation (TRUC) parents are now allowed
-  to be below the minimum relay feerate (i.e., pay 0 fees).
+- A new `-permitbaredatacarrier` option (default 0 / not permitted) has been
+  added to control acceptance of transactions with only a datacarrier output
+  and no real recipients. This is sometimes used to burn bitcoins. (knots#136)
 
-- Pay To Anchor (P2A) is a new standard witness output type for spending,
-  a newly recognised output template. This allows for key-less anchor
-  outputs, with compact spending conditions for additional efficiencies on
-  top of an equivalent `sh(OP_TRUE)` output, in addition to the txid stability
-  of the spending transaction.
-  N.B. propagation of this output spending on the network will be limited
-  until a sufficient number of nodes on the network adopt this upgrade.
-  (#30352)
+- The maximum number of potentially executed legacy signature operations in a
+  single standard transaction is now limited (by default) to 2500. Signature
+  operations in all previous output scripts, in all input scripts, as well as
+  all P2SH redeem scripts (if there are any) are counted toward the limit.
+  (#32521) It can be configured with the `-maxtxlegacysigops` option.
 
-- Limited package RBF is now enabled, where the proposed conflicting package
-  would result in a connected component, aka cluster, of size 2 in the mempool.
-  All clusters being conflicted against must be of size 2 or lower. (#28984)
+- A new option `-acceptunknownwitness` has been provided to filter
+  transactions sending to/using unknown/future witness script versions. While
+  this should generally be safe, it will also affect batch transactions, which
+  may be created be unsuspecting third parties who do not pay attention to the
+  witness version of addresses they send to (this is considered a best
+  practice). For that reason, the new filter is not enabled by default, and if
+  you wish to use it, you must set `-acceptunknownwitness=0` in your
+  configuration.
 
-GUI Changes
------------
+- Two new options, `-minrelaycoinblocks` and `-minrelaymaturity`, have been
+  added to restrict transactions relayed/mined to only ones spending bitcoins
+  with some degree of settlement. The former measures the value of bitcoins
+  being spent at a rate of 1 BTC per block since their confirmation, while the
+  second is a strict block-based maturity metric. In both cases, the minimum
+  must be met by transactions before the node will relay or mine them. These
+  are both disabled by default. (knots#148)
 
-- Transactions no longer show as confirmed after a mere 6 blocks. Instead, the
-  confirmation period has been extended to 16 blocks, which is a safer duration
-  given the current problematic state of mining centralisation. Note that if
-  you wish to be secure against China/Bitmain, you should consider transactions
-  unconfirmed for a full week.
+- Several policy filters exist to make future protocol changes safer,
+  collectively classified as "non-mandatory-script-verify-flag" rejections.
+  Unlike other policies, previous versions of Bitcoin Knots did not allow
+  disabling these filters. However, this makes recovery difficult when people
+  accidentally lock their bitcoins behind filtered "upgradable opcodes", and
+  to accomidate recovery, this version of Knots allows specifying these
+  rejection reasons to the `ignore_rejects` parameter of `sendrawtransaction`,
+  thereby overriding the rejection on a per-transaction basis (as with other
+  filters). Please be responsible with this feature, and note that using it
+  during a network upgrade may result in creating invalid blocks and lost
+  mining rewards!
 
-- The "Migrate Wallet" menu allows users to migrate any legacy wallet in their
-  wallet directory, regardless of the wallets loaded. (gui#824)
+- The `-rejecttokens` and datacarrier-related policies have been updated to
+  detect "OLGA" spam. (knots#151)
 
-- A very basic block visualizer has been added to the Window menu. You can use
-  it to see a graphic for any block at a glance, or block templates your node
-  is generating for your miner.
+### GUI changes
 
-Signed Messages
----------------
+- The configured "font for amounts" is now consistently used for all monetary
+  amounts in the GUI.
 
-Bitcoin has the ability for the recipient of bitcoins to a given address to
-sign messages, typically intended for use agreeing to terms. Due to confusion,
-this feature has often been mis-used in an attempt to prove current ownership
-of bitcoins or having sent a Bitcoin transaction. However, these message
-signatures do not in fact reflect either ownership or who sent a transaction.
-For this reason, message signing was not implemented for Segwit in hopes of a
-better standard that never manifested. Nevertheless, being able to sign as the
-recipient remains useful in some scenarios, so this version of Bitcoin Knots
-extends it to support newer standards:
+- The embedded "Roboto Mono Bold" font has been replaced with a new
+  "OCR-Bitcoin" font created specifically for Bitcoin Knots.
 
-- Verifying BIP 137, BIP 322, and Electrum signed messages is now supported.
+- Qt 6.2+ is now supported as an alternative to Qt 5.15 (which remains the
+  default for precompiled releases). As the Qt project no longer supports
+  version 5.15, it will likely be removed in a future release. To build the
+  source code using Qt 6, specify -D WITH_QT_VERSION=6 to your cmake command
+  line.
 
-- When signing messages for a Segwit or Taproot address, a BIP 322 signature
-  will be produced. (#24058)
+- Support for ᵇTBC and ˢTBC units has been removed, since Bitcoin's value has
+  made them largely unnecessary. The basic TBC unit is now available to all
+  users without jumping through hoops to install a new Tonal-enabled font.
+  See [the Bitcoin Wiki page on Tonal Bitcoin](https://en.bitcoin.it/wiki/Tonal_Bitcoin) to learn more about the
+  (eccentric) tonal bitcoin unit(s).
 
-JSON-RPC 2.0 Support
---------------------
+### Logging
 
-The JSON-RPC server now recognizes JSON-RPC 2.0 requests and responds with
-strict adherence to the [specification](https://www.jsonrpc.org/specification).
-See [JSON-RPC-interface.md](https://github.com/bitcoin/bitcoin/blob/master/doc/JSON-RPC-interface.md#json-rpc-11-vs-20) for details. (#27101)
+Unconditional logging to disk is now rate limited by giving each source location
+a quota of 1MiB per hour. Unconditional logging is any logging with a log level
+higher than debug, that is `info`, `warning`, and `error`. All logs will be
+prefixed with `[*]` if there is at least one source location that is currently
+being suppressed. (#32604)
 
-JSON-RPC clients may need to be updated to be compatible with the JSON-RPC
-server. Please open an issue on GitHub if any compatibility issues are found.
+When `-logsourcelocations` is enabled, the log output now contains the entire
+function signature instead of just the function name. (#32604)
 
-Updated RPCs
-------------
+### Updated RPCs
 
-- The `dumptxoutset` RPC now returns the UTXO set dump in a new and improved
-  format. Correspondingly, the `loadtxoutset` RPC now expects this new format
-  in the dumps it tries to load. Dumps with the old format are no longer
-  supported and need to be recreated using the new format to be usable.
-  (#29612)
+- The RPC `testmempoolaccept` response now includes a `reject-details` field in some cases,
+similar to the complete error messages returned by `sendrawtransaction` (#28121)
 
-- The `"warnings"` field in `getblockchaininfo`, `getmininginfo` and
-  `getnetworkinfo` now returns all the active node warnings as an array
-  of strings, instead of a single warning. The current behaviour
-  can be temporarily restored by running Bitcoin Knots with the configuration
-  option `-deprecatedrpc=warnings`. (#29845)
+- Duplicate blocks submitted with `submitblock` will now persist their block data
+even if it was previously pruned. If pruning is activated, the data will be
+pruned again eventually once the block file it is persisted in is selected for
+pruning. This is consistent with the behaviour of `getblockfrompeer` where the
+block is persisted as well even when pruning. (#31175)
 
-- Previously when using the `sendrawtransaction` RPC and specifying outputs
-  that are already in the UTXO set, an RPC error code of `-27` with the
-  message "Transaction already in block chain" was returned in response.
-  The error message has been changed to "Transaction outputs already in utxo
-  set" to more accurately describe the source of the issue. (#30212)
+- `getmininginfo` now returns `nBits` and the current target in the `target` field. It also returns a `next` object which specifies the `height`, `nBits`, `difficulty`, and `target` for the next block. (#31583)
 
-- The default mode for the `estimatesmartfee` RPC has been updated from
-  `conservative` to `economical`, which is expected to reduce over-estimation
-  for many users, particularly if Replace-by-Fee is an option. For users that
-  require high confidence in their fee estimates at the cost of potentially
-  over-estimating, the `conservative` mode remains available. (#30275)
+- `getblock` and `getblockheader` now return the current target in the `target` field (#31583)
 
-- RPC `submitpackage` now allows 2 new arguments to be passed: `maxfeerate` and
-  `maxburnamount`. See the submitpackage help for details. (#28950)
+- `getblockchaininfo` and `getchainstates` now return `nBits` and the current target in the `target` field (#31583)
 
-- The `status` action of the `scanblocks` RPC now returns an additional array
-  `"relevant_blocks"` containing the matching block hashes found so far during
-  a scan. (#30713)
+- The newly-unhidden `waitfornewblock` (which simply does not return until a
+  new block has been received) now takes an optional `current_tip` argument to
+  avoid a potential race between the new block and the RPC call. If provided,
+  the RPC will return immediately if the best block already does not match.
+  (#30635)
 
-- The `utxoupdatepsbt` method now accepts an optional third parameter,
-  `prevtxs`, containing an array of previous transactions (in hex) spent in
-  the PSBT being updated. The typical use-case would be when you have a too
-  low-fee (perhaps presigned) or timelocked parent transaction where you want
-  to sign the child transaction before broadcasting anything. (#30886)
+- `waitforblock` (which waits for a specific block hash before returning) and
+  `waitforblockheight` (which waits for a given height to be reached) are no
+  longer hidden. (#30635)
 
-- It is now possible to pass a named pipe (aka fifo) to the `dumptxoutset` RPC
-  method. This could be used to transfer the UTXO set to another program, such
-  as one which populates a database, without writing the entire UTXO set to
-  disk first. (#31560)
+- The `getblocktemplate` RPC `mintime` (BIP23) field now accounts for the
+  timewarp fix proposed in BIP94 on all networks. This ensures that, in the
+  event a timewarp fix softfork activates on Bitcoin, un-upgraded miners will
+  not accidentally violate the timewarp rule.
+As a reminder, it's important that any software which uses the `getblocktemplate`
+RPC takes these values into account (either `curtime` or `mintime` is fine).
+Relying only on a clock can lead to invalid blocks under some circumstances,
+especially once a timewarp fix is deployed. (#31600)
 
-- A new field `"cpu_load"` has been added to the `getpeerinfo` RPC output. It
-  shows the CPU time (user + system) spent processing messages from the given
-  peer and crafting messages for it expressed in per milles (‰) of the duration
-  of the connection. The field is optional and will be omitted on platforms
-  that do not support this or if still not measured. (#31672)
+- The `gettxoutproof` and `verifytxoutproof` methods have been extended with a
+  new Segwit-aware mode (enabled with `prove_witness` and `verify_witness`
+  named options, respectively). In this mode, the proofs prove the "witness
+  txid" (wtxid) instead of the traditional transaction id (txid). The format
+  of these proofs is currently considered experimental and may be changed in
+  future versions. (#32844)
 
-- The `getblocktemplate` method has been extended to accept new options to
-  control template creation: `blockreservedsigops`, `blockreservedsize`, and
-  `blockreservedweight` offset the maximum sigops/size/weight put into the
-  returned block template, while still respecting the configured limits.
+- `getpeerinfo` now includes `last_block_announcement` for each peer, for
+  the most recent time that peer has been the first to notify the local node
+  of a new block (or zero if it has never been the first). (#27052)
+
+- The `dumptxoutset` RPC now requires a `type` parameter to be specified. To
+  have the same behavior before v29, use the "latest" parameter. (#30808)
 
 Changes to wallet-related RPCs can be found in the Wallet section below.
 
-New RPCs
---------
+### Updated REST APIs
 
-- `getdescriptoractivity` can be used to find all spend/receive activity
-  relevant to a given set of descriptors within a set of specified blocks. This
-  call can be used with `scanblocks` to lessen the need for additional indexing
-  programs. (#30708)
+- `GET /rest/block/<BLOCK-HASH>.json` and `GET /rest/headers/<BLOCK-HASH>.json` now return the current target in the `target` field
 
-- `loadtxoutset` has been added, which allows loading a UTXO snapshot of the
-  format generated by `dumptxoutset`. See the AssumeUTXO section below for more
-  information.
+- A new REST API endpoint (`/rest/spenttxouts/BLOCKHASH`) has been introduced
+  for efficiently fetching spent transaction outputs using the block's undo
+  data. (#32540)
 
-Updated REST APIs
------------------
+### Wallet
 
-- As with the default mode for the `estimatesmartfee` RPC, the
-  `/rest/fee/unset/<TARGET>.json` endpoint has been updated to return estimates
-  calculated according to the `economical` mode rather than `conservative`.
+- The `walletcreatefundedpsbt` RPC method will now set a recent block height
+  as the transaction lock time, if a lock time is not otherwise provided, to
+  discourage miners from attempting to fee-snipe.
 
-Wallet
-------
+- `bumpfee` as well as `psbtbumpfee` now offer a `require_replacable`
+  parameter which can be set to false to bump the fee on transactions that
+  do not signal BIP125 transaction replacability. Bumping fees in the GUI will
+  likewise allow non-signalling transactions, with a warning. (#31953)
+  It is expected that the `require_replacable` parameter may default to false
+  in the future, or perhaps even be removed entirely.
 
-- The wallet now detects when wallet transactions conflict with the mempool.
-  Mempool-conflicting transactions can be seen in the `"mempoolconflicts"`
-  field of `gettransaction`. The inputs of mempool-conflicted transactions can
-  now be respent without manually abandoning the transactions when the parent
-  transaction is dropped from the mempool, which can cause wallet balances to
-  appear higher. (#27307)
+- When bumping transaction fees in the GUI, the "Create Unsigned" option now
+  opens the PSBT Operations dialog rather than simply copying the raw PSBT to
+  the clipboard directly.
 
-- A new `max_tx_weight` option has been added to the RPCs `fundrawtransaction`,
-  `walletcreatefundedpsbt`, and `send`. It specifies the maximum transaction
-  weight. If the limit is exceeded during funding, the transaction will not be
-  built. The default value is 4,000,000 WU. (#29523)
+### Updated Settings
 
-- A new `createwalletdescriptor` RPC allows users to add new automatically
-  generated descriptors to their wallet. This can be used to upgrade wallets
-  created prior to the introduction of a new standard descriptor, such as
-  taproot. (#29130)
+- The `-rpcuser` and `-rpcpassword` settings are no longer considered
+  deprecated, and are expected to remain supported for the immediate future.
+  (#32423)
 
-- A new RPC `gethdkeys` lists all of the BIP32 HD keys in use by all of the
-  descriptors in the wallet. These keys can be used in conjunction with
-  `createwalletdescriptor` to create and add single key descriptors to the
-  wallet for a particular key that the wallet already knows. (#29130)
+- Previously, `-proxy` specified the proxy for all networks (except I2P which
+  uses `-i2psam`) and only the Tor proxy could have been specified separately
+  via `-onion`. Now, the syntax of `-proxy` has been extended and it is possible
+  to specify separately the proxy for IPv4, IPv6, Tor and CJDNS by appending `=`
+  followed by the network name, for example `-proxy=127.0.0.1:5555=ipv6`
+  configures a proxy only for IPv6. The `-proxy` option can be used multiple
+  times to define different proxies for different networks, such as
+  `-proxy=127.0.0.1:4444=ipv4 -proxy=10.0.0.1:6666=ipv6`. Later settings
+  override earlier ones for the same network; this can be used to remove an
+  earlier all-networks proxy and use direct connections only for a given
+  network, for example `-proxy=127.0.0.1:5555 -proxy=0=cjdns`. (#32425)
 
-- In RPC `bumpfee`, if a `fee_rate` is specified, the feerate is no longer
-  restricted to following the wallet's incremental feerate of 5 sat/vb. The
-  feerate must still be at least the sum of the original fee and the mempool's
-  incremental feerate. (#27969)
+- The `-maxmempool` startup parameter is now capped on 32-bit systems to
+  500MB. (#32530)
 
-- The `getbalance` RPC method will now throw an error if `avoid_reuse` is set
-  together with `dummy=*`. (This combination was never supported, and the
-  `avoid_reuse` parameter had previously been silently ignored.)
+- Handling of negated `-noseednode`, `-nobind`, `-nowhitebind`, `-norpcbind`, `-norpcallowip`, `-norpcwhitelist`, `-notest`, `-noasmap`, `-norpcwallet`, `-noonlynet`, and `-noexternalip` options has changed. Previously negating these options had various confusing and undocumented side effects. Now negating them just resets the settings and restores default behaviors, as if the options were not specified.
 
-AssumeUTXO
-----------
+- As a safety check, Bitcoin Knots will **fail to start** when `-blockreservedweight` init parameter value is lower than `2000` weight units. Bitcoin Knots will also **fail to start** if the `-blockmaxweight` or `-blockreservedweight` init parameter exceeds consensus limit of `4,000,000 WU`.
 
-AssumeUTXO is a new experiemental feature that allows you to make a node usable
-quicker, only waiting on the complete sync to provide security. This is done by
-using the new `loadtxoutset` RPC method to load a trusted UTXO snapshot. Once
-this snapshot is loaded, its contents will be deserialized into a second
-chainstate data structure, which is then used to sync to the network's tip.
+- Passing `-debug=0` or `-debug=none` now behaves like `-nodebug`: previously set debug categories will be cleared, but subsequent `-debug` options will still be applied.
 
-Meanwhile, the original chainstate will complete the initial block download
-process in the background, eventually validating up to the block that the
-snapshot is based upon.
+### Tools and Utilities
 
-The result is a usable node that is current with the network tip in a matter of
-minutes rather than hours. However, until the full background sync completes,
-the node and any wallets using it remain insecure and should not be trusted or
-relied on for confirmation of payment. (#27596)
+- `bitcoin-cli -netinfo` now includes information about CPU time processing
+  messages to/from each peer. (#31672)
 
-You can find more information on this process in
-[the `assumeutxo` design document](design/assumeutxo.md).
+- `bitcoin-cli` will now just do the right thing if passed a block hash to
+  height-or-hash parameters for `gettxoutsetinfo`, `dumptxoutset`, and
+  `getblockstats`. (#33230)
 
-- AssumeUTXO mainnet parameters have been added for height 840,000 and 880,000.
-  This means the new `loadtxoutset` RPC can be used only on mainnet with the
-  matching UTXO set from one of those heights. (#28553, #31969)
+### Build System
 
-- While the node remains in an incomplete AssumeUTXO state, transactions will
-  correctly display as unconfirmed. Applicable RPC methods dealing with
-  transactions will return an additional `"confirmations_assumed"` field until
-  the background sync has completed. Note that *block* confirmation counts are
-  not affected.
+The build system has been migrated from Autotools to CMake:
 
-- When using assumeutxo with `-prune`, the prune budget may be exceeded if it
-  is set lower than 1100MB (i.e. `MIN_DISK_SPACE_FOR_BLOCK_FILES * 2`). Prune
-  budget is normally split evenly across each chainstate, unless the resulting
-  prune budget per chainstate is beneath `MIN_DISK_SPACE_FOR_BLOCK_FILES` in
-  which case that value will be used. (#27596)
+1. The minimum required CMake version is 3.22.
+2. In-source builds are not allowed. When using a subdirectory within the root source tree as a build directory, it is recommended that its name includes the substring "build".
+3. CMake variables may be used to configure the build system. See [Autotools to CMake Options Mapping](https://github.com/bitcoinknots/bitcoin-devwiki/wiki/Autotools-to-CMake-Options-Mapping) for details.
+4. For single-configuration generators, the default build configuration (`CMAKE_BUILD_TYPE`) is "RelWithDebInfo". However, for the "Release" configuration, CMake defaults to the compiler optimization flag `-O3`, which has not been extensively tested with Bitcoin Knots. Therefore, the build system replaces it with `-O2`.
+5. By default, the built executables and libraries are located in the `bin/` and `lib/` subdirectories of the build directory.
+6. The build system supports component‐based installation. The names of the installable components coincide with the build target names. For example:
+```
+cmake -B build
+cmake --build build --target bitcoind
+cmake --install build --component bitcoind
+```
 
-CLI Tools
----------
+7. If any of the `CPPFLAGS`, `CFLAGS`, `CXXFLAGS` or `LDFLAGS` environment variables were used in your Autotools-based build process, you should instead use the corresponding CMake variables (`APPEND_CPPFLAGS`, `APPEND_CFLAGS`, `APPEND_CXXFLAGS` and `APPEND_LDFLAGS`). Alternatively, if you opt to use the dedicated `CMAKE_<...>_FLAGS` variables, you must ensure that the resulting compiler or linker invocations are as expected.
 
-- The `bitcoin-cli -netinfo` command output now includes information about your
-  node's and peers' network services. (#30930, #31886)
+For more detailed guidance on configuring and using CMake, please refer to the official [CMake documentation](https://cmake.org/cmake/help/latest/) and [CMake’s User Interaction Guide](https://cmake.org/cmake/help/latest/guide/user-interaction/index.html). Additionally, consult platform-specific `doc/build-*.md` build guides for instructions tailored to your operating system.
 
-Build System
-------------
-
-- GCC 11.1 or later, or Clang 16.0 or later, are now required to compile
-  Bitcoin Knots. (#29091, #30263)
-
-- The minimum required glibc to run Bitcoin Knots is now 2.31. This means that
-  RHEL 8 and Ubuntu 18.04 (Bionic) are no-longer supported. (#29987)
-
-- `--enable-lcov-branch-coverage` has been removed, given incompatibilities
-  between lcov version 1 & 2. `LCOV_OPTS` should be used to set any options
-  instead. (#30192)
-
-Updated Settings
-----------------
-
-- When running with `-alertnotify`, an alert can now be raised multiple
-  times instead of just once. Previously, it was only raised when unknown
-  new consensus rules were activated. Its scope has now been increased to
-  include all warnings. Specifically, alerts will now also be raised
-  when an invalid chain with a large amount of work has been detected.
-  Additional warnings may be added in the future. (#30058)
-
-Changes to GUI or wallet related settings can be found in the GUI or Wallet
-section below.
-
-New Settings
-------------
-
-- A `pruneduringinit` setting has been added to override the `prune` setting
-  only during the initial blockchain sync. It can be useful to set this higher
-  to optimise for sync performance at the cost of temporarily higher disk
-  usage. (#31845)
-
-Software Expiration
--------------------
+### Software Expiration
 
 Since v0.14.2.knots20170618, each new version of Bitcoin Knots by default
-expires 1-2 years after its release. This is a security precaution to help
-ensure nodes remain kept up to date. To avoid potential disruption during
-holidays, beginning with this version, the expiry date has been moved later,
-from January until November.
+expires 1-2 years after its release (during November). This is a security
+precaution to help ensure nodes remain kept up to date.
+
+New in this version, Bitcoin Knots will provide a warning 4 weeks prior to
+expiry and send an alert (see `-alertnotify`). When the expiry is reached,
+the warning will be updated and another alert sent. Mining will also be
+disabled at that time.
 
 This is an optional feature. You may disable it by setting `softwareexpiry=0`
-in your config file. You may also set `softwareexpiry` to any other POSIX
+in your config file, but this is strongly discouraged without some other form
+of update reminders. You may also set `softwareexpiry` to any other POSIX
 timestamp, to trigger an expiration at that time instead.
 
-Low-level Changes
-=================
+## Low-Level Changes
 
-RPC
----
+### Consensus
 
-- The default for the `rpcthreads` and `rpcworkqueue` settings have been
-  increased. This may utilise slightly more system resources, but avoids
-  issues with common workloads. (#31215)
+- Previously, if a node was restarted during a block race (two parallel blocks
+  with equally best work), there was a random chance the node would switch to
+  a different one than it had chosen prior to the restart. This has changed so
+  that the currently-active chain remains the same. (#29640)
 
-Tests
------
+### Tools and Utilities
 
-- The BIP94 timewarp attack mitigation is now active on the `regtest` network.
-  (#30681)
+- A new tool [`utxo_to_sqlite.py`](/contrib/utxo-tools/utxo_to_sqlite.py)
+  converts a compact-serialized UTXO snapshot (as created with the
+  `dumptxoutset` RPC) to a SQLite3 database. Refer to the script's `--help`
+  output for more details. (#27432)
 
-- A new `-testdatadir` option has been added to `test_bitcoin` to allow
-  specifying the location of unit test data directories. (#26564)
+### Service definitions
 
-Blockstorage
-------------
+- The included OpenRC service has been adapted to FHS 3.0 and provides a new
+  BITCOIND_LOGDIR variable to control where the debug.log file is written.
 
-- Block files are now XOR'd by default with a key stored in the blocksdir.
-  Previous releases of Bitcoin Knots or previous external software will not be
-  able to read the blocksdir with a non-zero XOR-key. Refer to the `-blocksxor`
-  help for more details. (#28052)
+- The OpenRC service will now give the RPC cookie file group-readable access,
+  so that other programs running in the $BITCOIND_GROUP (by default,
+  'bitcoin') can access the RPC server automatically.
 
-Chainstate
-----------
+- The OpenRC service starts bitcoind in the background, and only becomes
+  active (to trigger dependent services) when the node and RPC server has
+  initialised. This ensures the node is accessible before any services
+  relying on it start, without blocking other unrelated system services.
+  (#24066)
 
-- The chainstate database flushes that occur when blocks are pruned will no
-  longer empty the database cache. The cache will remain populated longer,
-  which significantly reduces the time for initial block download to complete.
-  (#28280)
+### Stability
 
-Windows Data Directory
-----------------------
+- During initial synchronisation (as well as reindexing), the node will now
+  write its progress to disk at least once an hour, instead of the previous
+  24 hour wait on systems with lots of memory and large dbcache configuration.
+  This should avoid as much lost progress in the event of interruption, and
+  improve shutdown speeds. (#30611, #32414)
 
-The default data directory on Windows has been moved from `C:\Users\Username\AppData\Roaming\Bitcoin`
-to `C:\Users\Username\AppData\Local\Bitcoin`. Bitcoin Knots will check the
-existence of the old directory first and continue to use that directory for
-backwards compatibility if it is present. (#27064)
+### Tests
 
-Dependencies
-------------
+- The BIP94 timewarp attack mitigation (designed for testnet4) is no longer active on the regtest network. (#31156)
 
-- The dependency on Boost.Process has been replaced with cpp-subprocess, which
-  is contained in source. Builders will no longer need Boost.Process to build
-  with external signer or Tor subprocess support. (#28981) If you wish to build
-  without support for running a dedicated Tor subprocess, you can use the new
-  `--disable-tor-subprocess` configure flag.
+### Dependencies
+
+- Building the GUI from source now requires rsvg-convert (often packaged as
+  librsvg2-bin, librsvg2-tools, or simply librsvg), ImageMagick (except on
+  macOS), and libicns (only for macOS).
+
+- libnatpmp has been removed as a dependency (#31130, #30043).
 
 Credits
 =======
 
-Thanks to everyone who contributed to this release:
-- 0xb10c
+Thanks to everyone who directly contributed to this release:
+
+- 0xB10C
+- achow101
+- Adlai Chandrasekhar
+- Afanti
 - Alfonso Roman Zubeldia
+- am-sq
+- Andre
+- Andre Alves
 - Andrew Toth
-- AngusP
 - Anthony Towns
 - Antoine Poinsot
-- Anton A
 - Ash Manning
+- Ataraxia
 - Ava Chow
-- Ayush Singh
-- Ben Westgate
+- benthecarman
+- bigspider
+- Boris Nagaev
 - Brandon Odiwuor
+- Bufo
 - brunoerg
-- bstin
-- CharlesCNorton
-- Charlie
-- Christopher Bergqvist
+- Chris Stewart
 - Cory Fields
-- crazeteam
+- costcould
+- Crypt-iQ
+- Daniel Pfeifer
 - Daniela Brozzoni
-- David Benjamin
 - David Gumberg
+- deadmanoz
 - dergoegge
-- Edil Medeiros
-- Epic Curious
-- eval-exec
+- enirox001
+- epysqyli
+- espi3
+- Eval EXEC
 - Fabian Jahr
 - fanquake
 - furszy
+- Gabriele Bocchi
 - glozow
 - Greg Sanders
-- hanmz
+- Gutflo
+- Haoran Peng
+- Haowen Liu
 - Hennadii Stepanov
-- Hernan Marino
 - Hodlinator
-- ishaanam
+- i-am-yuvi
+- ion-
 - ismaelsadeeq
 - Jadi
 - James O'Beirne
+- jb55
+- Jeremy Rand
+- jlopp
 - Jon Atack
 - josibake
-- jrakibi
-- Karl-Johan Alm
-- kevkevin
+- jurraca
+- Kay
 - kevkevinpal
-- Konstantin Akimov
+- Kurtis Stirling
+- l0rinc
 - laanwj
 - Larry Ruane
+- Léo Haf
 - Lőrinc
-- ludete
-- Luis Schwab
-- Luke Dashjr
+- luisschwab
+- Maciej S. Szmigiero
+- Mackain
 - MarcoFalke
 - marcofleon
 - Marnix
+- Martin Leitner-Ankerl
 - Martin Saposnic
 - Martin Zumsande
-- Matt Corallo
-- Matthew Zipkin
 - Matt Whitlock
+- Matthew Zipkin
 - Max Edwards
 - Michael Dietz
-- Michael Little
-- Murch
-- nanlour
+- monlovesmango
+- naiyoma
+- nervana21
+- Nicola Leonardo Susca
+- Novo
+- omahs
+- omg21btc
 - pablomartin4btc
-- Peter Todd
 - Pieter Wuille
-- @RandyMcMillan
-- RoboSchmied
+- Pithosian
+- R E Broadley
+- Randall Naar
+- RiceChuan
+- rkrux
+- romanz
 - Roman Zeyde
 - Ryan Ofsky
 - Sebastian Falbesoner
+- secp512k2
 - Sergi Delgado Segura
+- shiny
+- Shunsuke Shimizu
+- Simon
 - Sjors Provoost
-- spicyzboss
-- StevenMia
+- Skyler
 - stickies-v
-- stratospher
 - Suhas Daftuar
-- sunerok
 - tdb3
 - TheCharlatan
-- umiumi
+- theStack
+- tianzedavid
+- Tomás Andróil
+- Torkel Rogstad
 - Vasil Dimov
-- virtu
+- w0xlt
+- wgyt
 - willcl-ark
+- yancy
+- zaidmstrr

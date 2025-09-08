@@ -37,6 +37,7 @@
 #include <QAbstractItemView>
 #include <QApplication>
 #include <QClipboard>
+#include <QColor>
 #include <QDateTime>
 #include <QDesktopServices>
 #include <QDialog>
@@ -71,6 +72,7 @@
 
 #include <cassert>
 #include <chrono>
+#include <cmath>
 #include <exception>
 #include <fstream>
 #include <string>
@@ -110,9 +112,75 @@ QString dateTimeStr(qint64 nTime)
 QFont fixedPitchFont(bool use_embedded_font)
 {
     if (use_embedded_font) {
-        return {"Roboto Mono"};
+        // If we don't specify a size, various contexts will initialize it differently
+        return {"OCR-Bitcoin", QFont().pointSize()};
     }
     return QFontDatabase::systemFont(QFontDatabase::FixedFont);
+}
+
+static void escapeForCssString(QString& s)
+{
+    for (qsizetype i{s.size()}; i; ) {
+        switch (s.at(--i).unicode()) {
+            case '\\': case '\"':
+                s.insert(i, '\\');
+        }
+    }
+}
+
+QString fontToCss(const QFont& font)
+{
+    QString css;
+    auto families = font.families();
+    if (families.isEmpty()) {
+        auto family = font.family();
+        if (!family.isEmpty()) families.append(family);
+    }
+    if (!families.isEmpty()) {
+        css += "font-family:";
+        for (auto& family : families) {
+            escapeForCssString(family);
+            css += "\"" + family + "\", ";
+        }
+        css.chop(2);
+        css += ";";
+    }
+    if (const auto point_size{font.pointSize()}; point_size != -1) {
+        css += "font-size:" + QString::number(point_size) + "pt;";
+    } else if (const auto pixel_size{font.pixelSize()}; pixel_size != -1) {
+        css += "font-size:" + QString::number(pixel_size) + "px;";
+    }
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+    css += "font-weight:" + QString::number((int)font.weight()) + ";";
+#else
+    css += "font-weight:" + QString::number(font.weight() * 8) + ";";
+#endif
+    switch (font.style()) {
+    default:
+        css += "font-style:normal;";
+        break;
+    case QFont::StyleItalic:
+        css += "font-style:italic;";
+        break;
+    case QFont::StyleOblique:
+        css += "font-style:oblique;";
+        break;
+    }
+    css += "text-decoration:";
+    if (font.underline()) {
+        css += " underline";
+    }
+    if (font.overline()) {
+        css += " overline";
+    }
+    if (font.strikeOut()) {
+        css += " line-through";
+    }
+    if (!(font.underline() || font.overline() || font.strikeOut())) {
+        css += "none";
+    }
+    css += ";";
+    return css;
 }
 
 // Return a pre-generated dummy bech32m address (P2TR) with invalid checksum.
@@ -478,7 +546,7 @@ void handleCloseWindowShortcut(QWidget* w)
 
 void openDebugLogfile()
 {
-    fs::path pathDebug = gArgs.GetDataDirNet() / "debug.log";
+    fs::path pathDebug = LogInstance().m_file_path;
 
     /* Open debug.log with the associated application */
     if (fs::exists(pathDebug))
@@ -1005,34 +1073,46 @@ QString formatBytesps(float val)
 {
     if (val < 10)
         //: "Bytes per second"
-        return QObject::tr("%1 B/s").arg(0.01 * int(val * 100));
+        return QObject::tr("%1 B/s").arg(0.01 * int(val * 100 + 0.5));
     if (val < 100)
         //: "Bytes per second"
-        return QObject::tr("%1 B/s").arg(0.1 * int(val * 10));
+        return QObject::tr("%1 B/s").arg(0.1 * int(val * 10 + 0.5));
     if (val < 1'000)
         //: "Bytes per second"
-        return QObject::tr("%1 B/s").arg((int)val);
+        return QObject::tr("%1 B/s").arg(int(val + 0.5));
     if (val < 10'000)
         //: "Kilobytes per second"
-        return QObject::tr("%1 kB/s").arg(0.01 * ((int)val / 10));
+        return QObject::tr("%1 kB/s").arg(0.01 * int(val / 10 + 0.5));
     if (val < 100'000)
         //: "Kilobytes per second"
-        return QObject::tr("%1 kB/s").arg(0.1 * ((int)val / 100));
+        return QObject::tr("%1 kB/s").arg(0.1 * int(val / 100 + 0.5));
     if (val < 1'000'000)
         //: "Kilobytes per second"
-        return QObject::tr("%1 kB/s").arg((int)val / 1'000);
+        return QObject::tr("%1 kB/s").arg(int(val / 1'000 + 0.5));
     if (val < 10'000'000)
         //: "Megabytes per second"
-        return QObject::tr("%1 MB/s").arg(0.01 * ((int)val / 10'000));
+        return QObject::tr("%1 MB/s").arg(0.01 * int(val / 10'000 + 0.5));
     if (val < 100'000'000)
         //: "Megabytes per second"
-        return QObject::tr("%1 MB/s").arg(0.1 * ((int)val / 100'000));
+        return QObject::tr("%1 MB/s").arg(0.1 * int(val / 100'000 + 0.5));
     if (val < 10'000'000'000)
         //: "Megabytes per second"
-        return QObject::tr("%1 MB/s").arg((long)val / 1'000'000);
+        return QObject::tr("%1 MB/s").arg(long(val / 1'000'000 + 0.5));
 
     //: "Gigabytes per second"
-    return QObject::tr("%1 GB/s").arg((long)val / 1'000'000'000);
+    return QObject::tr("%1 GB/s").arg(long(val / 1'000'000'000 + 0.5));
+}
+
+static double ColourLuminosity(const QColor& c)
+{
+    const auto Lr = std::pow(c.redF(),   2.2) * .2126;
+    const auto Lg = std::pow(c.greenF(), 2.2) * .7152;
+    const auto Lb = std::pow(c.blueF(),  2.2) * .0722;
+    return Lr + Lg + Lb;
+}
+
+bool isDarkMode(const QColor& color) {
+    return ColourLuminosity(color) < .36;
 }
 
 qreal calculateIdealFontSize(int width, const QString& text, QFont font, qreal minPointSize, qreal font_size) {

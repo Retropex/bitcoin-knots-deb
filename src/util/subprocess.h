@@ -57,7 +57,7 @@ Documentation for C++ subprocessing library.
 #include <string>
 #include <vector>
 
-#ifdef WIN32
+#if (defined _MSC_VER) || (defined __MINGW32__)
   #define __USING_WINDOWS__
 #endif
 
@@ -70,22 +70,30 @@ extern "C" {
   #include <windows.h>
   #include <io.h>
   #include <cwchar>
-
-  #define subprocess_close _close
-  #define subprocess_open _open
-  #define subprocess_fileno _fileno
 #else
   #include <sys/wait.h>
   #include <unistd.h>
-
-  #define subprocess_close close
-  #define subprocess_open open
-  #define subprocess_fileno fileno
 #endif
   #include <csignal>
   #include <fcntl.h>
   #include <sys/types.h>
 }
+
+// The Microsoft C++ compiler issues deprecation warnings
+// for the standard POSIX function names.
+// Its preferred implementations have a leading underscore.
+// See: https://learn.microsoft.com/en-us/cpp/c-runtime-library/compatibility.
+#if (defined _MSC_VER)
+  #define subprocess_close _close
+  #define subprocess_fileno _fileno
+  #define subprocess_open _open
+  #define subprocess_write _write
+#else
+  #define subprocess_close close
+  #define subprocess_fileno fileno
+  #define subprocess_open open
+  #define subprocess_write write
+#endif
 
 /*!
  * Getting started with reading this source code.
@@ -165,6 +173,7 @@ public:
 //--------------------------------------------------------------------
 namespace util
 {
+#ifdef __USING_WINDOWS__
   inline void quote_argument(const std::wstring &argument, std::wstring &command_line,
                       bool force)
   {
@@ -225,7 +234,6 @@ namespace util
     }
   }
 
-#ifdef __USING_WINDOWS__
   inline std::string get_last_error(DWORD errorMessageID)
   {
     if (errorMessageID == 0)
@@ -270,7 +278,7 @@ namespace util
 
     FILE *fp = _fdopen(os_fhandle, mode);
     if (fp == 0) {
-      _close(os_fhandle);
+      subprocess_close(os_fhandle);
       throw OSError("_fdopen", 0);
     }
 
@@ -340,10 +348,14 @@ namespace util
   void set_clo_on_exec(int fd, bool set = true)
   {
     int flags = fcntl(fd, F_GETFD, 0);
+    if (flags == -1) {
+        throw OSError("fcntl F_GETFD failed", errno);
+    }
     if (set) flags |= FD_CLOEXEC;
     else flags &= ~FD_CLOEXEC;
-    //TODO: should check for errors
-    fcntl(fd, F_SETFD, flags);
+    if (fcntl(fd, F_SETFD, flags) == -1) {
+        throw OSError("fcntl F_SETFD failed", errno);
+    }
   }
 
 
@@ -389,7 +401,7 @@ namespace util
   {
     size_t nwritten = 0;
     while (nwritten < length) {
-      int written = write(fd, buf + nwritten, length - nwritten);
+      int written = subprocess_write(fd, buf + nwritten, length - nwritten);
       if (written == -1) return -1;
       nwritten += written;
     }
@@ -547,7 +559,7 @@ struct string_arg
 {
   string_arg(const char* arg): arg_value(arg) {}
   string_arg(std::string&& arg): arg_value(std::move(arg)) {}
-  string_arg(std::string arg): arg_value(std::move(arg)) {}
+  string_arg(const std::string& arg): arg_value(arg) {}
   std::string arg_value;
 };
 
@@ -779,7 +791,10 @@ class Communication
 public:
   Communication(Streams* stream): stream_(stream)
   {}
-  void operator=(const Communication&) = delete;
+  Communication(const Communication&) = delete;
+  Communication& operator=(const Communication&) = delete;
+  Communication(Communication&&) = default;
+  Communication& operator=(Communication&&) = default;
 public:
   int send(const char* msg, size_t length);
   int send(const std::vector<char>& msg);
@@ -816,7 +831,10 @@ class Streams
 {
 public:
   Streams():comm_(this) {}
-  void operator=(const Streams&) = delete;
+  Streams(const Streams&) = delete;
+  Streams& operator=(const Streams&) = delete;
+  Streams(Streams&&) = default;
+  Streams& operator=(Streams&&) = default;
 
 public:
   void setup_comm_channels();
@@ -1074,11 +1092,16 @@ inline int Popen::wait() noexcept(false)
 {
 #ifdef __USING_WINDOWS__
   int ret = WaitForSingleObject(process_handle_, INFINITE);
-  if (ret != WAIT_OBJECT_0) return -1;
+
+  // WaitForSingleObject with INFINITE should only return when process has signaled
+  if (ret != WAIT_OBJECT_0) {
+    throw OSError("Unexpected return code from WaitForSingleObject", 0);
+  }
 
   DWORD dretcode_;
+
   if (FALSE == GetExitCodeProcess(process_handle_, &dretcode_))
-      throw OSError("GetExitCodeProcess", 0);
+      throw OSError("Failed during call to GetExitCodeProcess", 0);
 
   CloseHandle(process_handle_);
 
@@ -1172,11 +1195,16 @@ inline void Popen::execute_process() noexcept(false)
   std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
   std::wstring argument;
   std::wstring command_line;
+  bool first_arg = true;
 
   for (auto arg : this->vargs_) {
+    if (!first_arg) {
+      command_line += L" ";
+    } else {
+      first_arg = false;
+    }
     argument = converter.from_bytes(arg);
     util::quote_argument(argument, command_line, false);
-    command_line += L" ";
   }
 
   // CreateProcessW can modify szCmdLine so we allocate needed memory
@@ -1284,11 +1312,13 @@ inline void Popen::execute_process() noexcept(false)
     try {
       char err_buf[SP_MAX_ERR_BUF_SIZ] = {0,};
 
-      int read_bytes = util::read_atmost_n(
-                                  fdopen(err_rd_pipe, "r"),
-                                  err_buf,
-                                  SP_MAX_ERR_BUF_SIZ);
-      subprocess_close(err_rd_pipe);
+      FILE* err_fp = fdopen(err_rd_pipe, "r");
+      if (!err_fp) {
+          subprocess_close(err_rd_pipe);
+          throw OSError("fdopen failed", errno);
+      }
+      int read_bytes = util::read_atmost_n(err_fp, err_buf, SP_MAX_ERR_BUF_SIZ);
+      fclose(err_fp);
 
       if (read_bytes || strlen(err_buf)) {
         // Call waitpid to reap the child process
@@ -1340,6 +1370,10 @@ namespace detail {
     popen_->close_fds_ = cfds.close_all;
   }
 
+#ifndef __USING_WINDOWS__
+  void subprocess_close_all_fds(int except_fd);
+#endif
+
 
   inline void Child::execute_child() {
 #ifndef __USING_WINDOWS__
@@ -1388,21 +1422,7 @@ namespace detail {
 
       // Close all the inherited fd's except the error write pipe
       if (parent_->close_fds_) {
-        try {
-            std::vector<int> fds_to_close;
-            for (const auto& it : fs::directory_iterator("/proc/self/fd")) {
-                int64_t fd;
-                if (!ParseInt64(it.path().filename().native(), &fd)) continue;
-                if (fd <= 2) continue;  // leave std{in,out,err} alone
-                if (fd == err_wr_pipe_) continue;
-                fds_to_close.push_back(fd);
-            }
-            for (const int fd : fds_to_close) {
-                close(fd);
-            }
-        } catch (...) {
-            // TODO: maybe log this - but we're in a child process, so maybe non-trivial!
-        }
+        subprocess_close_all_fds(/*except_fd=*/ err_wr_pipe_);
       }
 
       // Replace the current image with the executable
@@ -1430,15 +1450,15 @@ namespace detail {
 #ifdef __USING_WINDOWS__
     util::configure_pipe(&this->g_hChildStd_IN_Rd, &this->g_hChildStd_IN_Wr, &this->g_hChildStd_IN_Wr);
     this->input(util::file_from_handle(this->g_hChildStd_IN_Wr, "w"));
-    this->write_to_child_ = _fileno(this->input());
+    this->write_to_child_ = subprocess_fileno(this->input());
 
     util::configure_pipe(&this->g_hChildStd_OUT_Rd, &this->g_hChildStd_OUT_Wr, &this->g_hChildStd_OUT_Rd);
     this->output(util::file_from_handle(this->g_hChildStd_OUT_Rd, "r"));
-    this->read_from_child_ = _fileno(this->output());
+    this->read_from_child_ = subprocess_fileno(this->output());
 
     util::configure_pipe(&this->g_hChildStd_ERR_Rd, &this->g_hChildStd_ERR_Wr, &this->g_hChildStd_ERR_Rd);
     this->error(util::file_from_handle(this->g_hChildStd_ERR_Rd, "r"));
-    this->err_read_ = _fileno(this->error());
+    this->err_read_ = subprocess_fileno(this->error());
 #else
 
     if (write_to_child_ != -1)  input(fdopen(write_to_child_, "wb"));

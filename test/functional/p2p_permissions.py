@@ -14,8 +14,10 @@ from test_framework.p2p import P2PDataStore
 from test_framework.test_node import ErrorMatch
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
+    append_config,
     assert_equal,
     p2p_port,
+    tor_port,
 )
 from test_framework.wallet import MiniWallet
 
@@ -57,11 +59,14 @@ class P2PPermissionsTests(BitcoinTestFramework):
         # by modifying the configuration file.
         ip_port = "127.0.0.1:{}".format(p2p_port(1))
         self.nodes[1].replace_in_config([("bind=127.0.0.1", "whitebind=bloomfilter,forcerelay@" + ip_port)])
+        # Explicitly bind the tor port to prevent collisions with the default tor port
+        append_config(self.nodes[1].datadir_path, [f"bind=127.0.0.1:{tor_port(self.nodes[1].index)}=onion"])
         self.checkpermission(
             ["-whitelist=noban@127.0.0.1"],
             # Check parameter interaction forcerelay should activate relay
             ["noban", "bloomfilter", "forcerelay", "relay", "download"])
         self.nodes[1].replace_in_config([("whitebind=bloomfilter,forcerelay@" + ip_port, "bind=127.0.0.1")])
+        self.nodes[1].replace_in_config([(f"bind=127.0.0.1:{tor_port(self.nodes[1].index)}=onion", "")])
 
         self.checkpermission(
             # legacy whitelistrelay should be ignored
@@ -92,7 +97,7 @@ class P2PPermissionsTests(BitcoinTestFramework):
                 "addr",
             ])
 
-        for flag, permissions in [(["-whitelist=noban,out@127.0.0.1"], ["noban", "download"]), (["-whitelist=noban@127.0.0.1"], [])]:
+        for flag, permissions in [(["-whitelist=noban,out@127.0.0.1"], ["bloomfilter", "noban", "download"]), (["-whitelist=noban@127.0.0.1"], ["bloomfilter"])]:
             self.restart_node(0, flag)
             self.connect_nodes(0, 1)
             peerinfo = self.nodes[0].getpeerinfo()[0]
@@ -149,7 +154,7 @@ class P2PPermissionsTests(BitcoinTestFramework):
         )
 
     def checkpermission(self, args, expectedPermissions):
-        self.restart_node(1, args)
+        self.restart_node(1, ['-peerbloomfilters=0'] + args)
         self.connect_nodes(0, 1)
         peerinfo = self.nodes[1].getpeerinfo()[0]
         assert_equal(len(expectedPermissions), len(peerinfo['permissions']))

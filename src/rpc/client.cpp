@@ -18,6 +18,7 @@ public:
     std::string methodName; //!< method whose params want conversion
     int paramIdx;           //!< 0-based idx of param to convert
     std::string paramName;  //!< parameter name
+    bool also_string{false}; //!< The parameter is also a string
 };
 
 // clang-format off
@@ -105,6 +106,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "sweepprivkeys", 0, "privkeys" },
     { "scantxoutset", 1, "scanobjects" },
     { "dumptxoutset", 1, "format" },
+    { "dumptxoutset", 2, "format" },
     { "dumptxoutset", 2, "show_header" },
     { "addmultisigaddress", 0, "nrequired" },
     { "addmultisigaddress", 1, "keys" },
@@ -213,8 +215,14 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "gettxout", 1, "n" },
     { "gettxout", 2, "include_mempool" },
     { "gettxoutproof", 0, "txids" },
-    { "gettxoutsetinfo", 1, "hash_or_height" },
+    { "gettxoutproof", 2, "options" },
+    { "gettxoutproof", 2, "prove_witness" },
+    { "verifytxoutproof", 1, "options" },
+    { "verifytxoutproof", 1, "verify_witness" },
+    { "gettxoutsetinfo", 1, "hash_or_height", /*also_string=*/true },
     { "gettxoutsetinfo", 2, "use_index"},
+    { "dumptxoutset", 2, "options" },
+    { "dumptxoutset", 2, "rollback", /*also_string=*/true },
     { "lockunspent", 0, "unlock" },
     { "lockunspent", 1, "transactions" },
     { "lockunspent", 2, "persistent" },
@@ -275,7 +283,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "listdescriptors", 0, "private" },
     { "verifychain", 0, "checklevel" },
     { "verifychain", 1, "nblocks" },
-    { "getblockstats", 0, "hash_or_height" },
+    { "getblockstats", 0, "hash_or_height", /*also_string=*/true },
     { "getblockstats", 1, "stats" },
     { "getblockfileinfo", 0, "file_number" },
     { "setprunelock", 1, "lock_info" },
@@ -302,12 +310,14 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "bumpfee", 1, "conf_target"},
     { "bumpfee", 1, "fee_rate"},
     { "bumpfee", 1, "replaceable"},
+    { "bumpfee", 1, "require_replacable"},
     { "bumpfee", 1, "outputs"},
     { "bumpfee", 1, "original_change_index"},
     { "psbtbumpfee", 1, "options" },
     { "psbtbumpfee", 1, "conf_target"},
     { "psbtbumpfee", 1, "fee_rate"},
     { "psbtbumpfee", 1, "replaceable"},
+    { "psbtbumpfee", 1, "require_replacable"},
     { "psbtbumpfee", 1, "outputs"},
     { "psbtbumpfee", 1, "original_change_index"},
     { "logging", 0, "include" },
@@ -355,18 +365,21 @@ static const CRPCConvertParam vRPCConvertParams[] =
 // clang-format on
 
 /** Parse string to UniValue or throw runtime_error if string contains invalid JSON */
-static UniValue Parse(std::string_view raw)
+static UniValue Parse(std::string_view raw, bool also_string)
 {
     UniValue parsed;
-    if (!parsed.read(raw)) throw std::runtime_error(tfm::format("Error parsing JSON: %s", raw));
+    if (!parsed.read(raw)) {
+        if (!also_string) throw std::runtime_error(tfm::format("Error parsing JSON: %s", raw));
+        return raw;
+    }
     return parsed;
 }
 
 class CRPCConvertTable
 {
 private:
-    std::set<std::pair<std::string, int>> members;
-    std::set<std::pair<std::string, std::string>> membersByName;
+    std::map<std::pair<std::string, int>, bool> members;
+    std::map<std::pair<std::string, std::string>, bool> membersByName;
 
 public:
     CRPCConvertTable();
@@ -374,21 +387,29 @@ public:
     /** Return arg_value as UniValue, and first parse it if it is a non-string parameter */
     UniValue ArgToUniValue(std::string_view arg_value, const std::string& method, int param_idx)
     {
-        return members.count({method, param_idx}) > 0 ? Parse(arg_value) : arg_value;
+        const auto& it = members.find({method, param_idx});
+        if (it != members.end()) {
+            return Parse(arg_value, it->second);
+        }
+        return arg_value;
     }
 
     /** Return arg_value as UniValue, and first parse it if it is a non-string parameter */
     UniValue ArgToUniValue(std::string_view arg_value, const std::string& method, const std::string& param_name)
     {
-        return membersByName.count({method, param_name}) > 0 ? Parse(arg_value) : arg_value;
+        const auto& it = membersByName.find({method, param_name});
+        if (it != membersByName.end()) {
+            return Parse(arg_value, it->second);
+        }
+        return arg_value;
     }
 };
 
 CRPCConvertTable::CRPCConvertTable()
 {
     for (const auto& cp : vRPCConvertParams) {
-        members.emplace(cp.methodName, cp.paramIdx);
-        membersByName.emplace(cp.methodName, cp.paramName);
+        members.emplace(std::make_pair(cp.methodName, cp.paramIdx), cp.also_string);
+        membersByName.emplace(std::make_pair(cp.methodName, cp.paramName), cp.also_string);
     }
 }
 

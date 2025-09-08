@@ -115,7 +115,7 @@ bool GenerateAuthCookie(std::string* cookie_out, const std::pair<std::optional<f
     }
     try {
         fs::remove(filepath_tmp);
-    } catch (const fs::filesystem_error& e) {
+    } catch (const fs::filesystem_error&) {
         // ignore
     }
     file.open(filepath_tmp);
@@ -139,7 +139,7 @@ bool GenerateAuthCookie(std::string* cookie_out, const std::pair<std::optional<f
     fs::path filepath = GetAuthCookieFile(false);
     try {
         fs::remove(filepath);
-    } catch (const fs::filesystem_error& e) {
+    } catch (const fs::filesystem_error&) {
         // ignore
     }
     if (!RenameOver(filepath_tmp, filepath)) {
@@ -186,7 +186,7 @@ void DeleteAuthCookie()
             fs::remove(GetAuthCookieFile());
         }
     } catch (const fs::filesystem_error& e) {
-        LogPrintf("%s: Unable to remove random auth cookie file: %s\n", __func__, fsbridge::get_filesystem_error_message(e));
+        LogPrintf("%s: Unable to remove random auth cookie file %s: %s\n", __func__, fs::PathToString(e.path1()), fsbridge::get_filesystem_error_message(e));
     }
 }
 
@@ -241,10 +241,10 @@ void JSONRPCRequest::parse(const UniValue& valRequest)
         throw JSONRPCError(RPC_INVALID_REQUEST, "Method must be a string");
     strMethod = valMethod.get_str();
     if (fLogIPs)
-        LogPrint(BCLog::RPC, "ThreadRPCServer method=%s user=%s peeraddr=%s\n", SanitizeString(strMethod),
+        LogDebug(BCLog::RPC, "ThreadRPCServer method=%s user=%s peeraddr=%s\n", SanitizeString(strMethod),
             this->authUser, this->peerAddr);
     else
-        LogPrint(BCLog::RPC, "ThreadRPCServer method=%s user=%s\n", SanitizeString(strMethod), this->authUser);
+        LogDebug(BCLog::RPC, "ThreadRPCServer method=%s user=%s\n", SanitizeString(strMethod), this->authUser);
 
     // Parse params
     const UniValue& valParams{request.find_value("params")};

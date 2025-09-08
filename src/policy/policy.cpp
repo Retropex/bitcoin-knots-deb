@@ -72,6 +72,15 @@ bool IsDust(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
     return (txout.nValue < GetDustThreshold(txout, dustRelayFeeIn));
 }
 
+std::vector<uint32_t> GetDust(const CTransaction& tx, CFeeRate dust_relay_rate)
+{
+    std::vector<uint32_t> dust_outputs;
+    for (uint32_t i{0}; i < tx.vout.size(); ++i) {
+        if (IsDust(tx.vout[i], dust_relay_rate)) dust_outputs.push_back(i);
+    }
+    return dust_outputs;
+}
+
 /**
  * Note this must assign whichType even if returning false, in case
  * IsStandardTx ignores the "scriptpubkey" rejection.
@@ -155,18 +164,38 @@ bool IsStandardTx(const CTransaction& tx, const kernel::MemPoolOptions& opts, st
     }
 
     unsigned int nDataOut = 0;
+    unsigned int n_dust{0};
+    unsigned int n_monetary{0};
     TxoutType whichType;
-    for (const CTxOut& txout : tx.vout) {
+    for (size_t i{tx.vout.size()}; i; ) {
+        const CTxOut& txout = tx.vout[--i];
+
         if (txout.scriptPubKey.size() > g_script_size_policy_limit) {
             MaybeReject("scriptpubkey-size");
         }
 
         if (!::IsStandard(txout.scriptPubKey, opts.max_datacarrier_bytes, whichType)) {
-            if (whichType == TxoutType::WITNESS_UNKNOWN) {
-                MaybeReject("scriptpubkey-unknown-witnessversion");
-            } else {
-                MaybeReject("scriptpubkey");
+            MaybeReject("scriptpubkey");
+        }
+
+        if (whichType == TxoutType::WITNESS_UNKNOWN && !opts.acceptunknownwitness) {
+            MaybeReject("scriptpubkey-unknown-witnessversion");
+        }
+
+        if (whichType == TxoutType::ANCHOR && !opts.permitephemeral_anchor) {
+            MaybeReject("anchor");
+        }
+
+        if (IsDust(txout, opts.dust_relay_feerate)) {
+            if (whichType != TxoutType::ANCHOR && !opts.permitephemeral_send) {
+                MaybeReject("dust-nonanchor");
             }
+            if (txout.nValue && !opts.permitephemeral_dust) {
+                MaybeReject("dust-nonzero");
+            }
+            ++n_dust;
+        } else if (whichType != TxoutType::NULL_DATA) {
+            ++n_monetary;
         }
 
         if (whichType == TxoutType::NULL_DATA) {
@@ -182,14 +211,57 @@ bool IsStandardTx(const CTransaction& tx, const kernel::MemPoolOptions& opts, st
         else if ((whichType == TxoutType::MULTISIG) && (!opts.permit_bare_multisig)) {
             MaybeReject("bare-multisig");
         }
-        if (IsDust(txout, opts.dust_relay_feerate)) {
-            MaybeReject("dust");
+        else if (whichType == TxoutType::WITNESS_V0_SCRIPTHASH && opts.reject_tokens && txout.scriptPubKey.IsOLGA(tx.vout.size() - i))  {
+            MaybeReject("tokens-olga");
         }
+    }
+
+    // Only MAX_DUST_OUTPUTS_PER_TX dust is permitted(on otherwise valid ephemeral dust)
+    if (n_dust > MAX_DUST_OUTPUTS_PER_TX) {
+        MaybeReject("dust");
     }
 
     // only one OP_RETURN txout is permitted
     if (nDataOut > 1) {
         MaybeReject("multi-op-return");
+    }
+
+    if (!n_monetary) {
+        if (nDataOut && !opts.permitbaredatacarrier) {
+            MaybeReject("bare-datacarrier");
+        }
+        if ((!nDataOut) && !opts.permitbareanchor) {
+            MaybeReject("bare-anchor");
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Check the total number of non-witness sigops across the whole transaction, as per BIP54.
+ */
+static bool CheckSigopsBIP54(const CTransaction& tx, const CCoinsViewCache& inputs, const kernel::MemPoolOptions& opts)
+{
+    Assert(!tx.IsCoinBase());
+
+    unsigned int sigops{0};
+    for (const auto& txin: tx.vin) {
+        const auto& prev_txo{inputs.AccessCoin(txin.prevout).out};
+
+        // Unlike the existing block wide sigop limit which counts sigops present in the block
+        // itself (including the scriptPubKey which is not executed until spending later), BIP54
+        // counts sigops in the block where they are potentially executed (only).
+        // This means sigops in the spent scriptPubKey count toward the limit.
+        // `fAccurate` means correctly accounting sigops for CHECKMULTISIGs(VERIFY) with 16 pubkeys
+        // or fewer. This method of accounting was introduced by BIP16, and BIP54 reuses it.
+        // The GetSigOpCount call on the previous scriptPubKey counts both bare and P2SH sigops.
+        sigops += txin.scriptSig.GetSigOpCount(/*fAccurate=*/true);
+        sigops += prev_txo.scriptPubKey.GetSigOpCount(txin.scriptSig);
+
+        if (sigops > opts.maxtxlegacysigops) {
+            return false;
+        }
     }
 
     return true;
@@ -212,11 +284,17 @@ bool IsStandardTx(const CTransaction& tx, const kernel::MemPoolOptions& opts, st
  *   DUP CHECKSIG DROP ... repeated 100 times... OP_1
  *
  * Note that only the non-witness portion of the transaction is checked here.
+ *
+ * We also check the total number of non-witness sigops across the whole transaction, as per BIP54.
  */
-bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs, const std::string& reason_prefix, std::string& out_reason, const ignore_rejects_type& ignore_rejects)
+bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs, const kernel::MemPoolOptions& opts, const std::string& reason_prefix, std::string& out_reason, const ignore_rejects_type& ignore_rejects)
 {
     if (tx.IsCoinBase()) {
         return true; // Coinbases don't use vin normally
+    }
+
+    if (!CheckSigopsBIP54(tx, mapInputs, opts)) {
+        MaybeReject("sigops-toomany-overall");
     }
 
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
@@ -322,9 +400,13 @@ bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs,
             return false;
         }
 
+        if (GetSerializeSize(tx.vin[i].scriptWitness.stack) > g_script_size_policy_limit) {
+            MaybeReject("witness-size");
+        }
+
         // Check P2WSH standard limits
         if (witnessversion == 0 && witnessprogram.size() == WITNESS_V0_SCRIPTHASH_SIZE) {
-            if (tx.vin[i].scriptWitness.stack.back().size() > std::min(MAX_STANDARD_P2WSH_SCRIPT_SIZE, g_script_size_policy_limit))
+            if (tx.vin[i].scriptWitness.stack.back().size() > MAX_STANDARD_P2WSH_SCRIPT_SIZE)
                 MaybeReject("script-size");
             size_t sizeWitnessStack = tx.vin[i].scriptWitness.stack.size() - 1;
             if (sizeWitnessStack > MAX_STANDARD_P2WSH_STACK_ITEMS)
@@ -350,14 +432,11 @@ bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs,
             if (stack.size() >= 2) {
                 // Script path spend (2 or more stack elements after removing optional annex)
                 const auto& control_block = SpanPopBack(stack);
-                const auto& tapscript = SpanPopBack(stack);
+                SpanPopBack(stack); // Ignore script
                 if (control_block.empty()) {
                     // Empty control block is invalid
                     out_reason = reason_prefix + "taproot-control-missing";
                     return false;
-                }
-                if (tapscript.size() > g_script_size_policy_limit) {
-                    MaybeReject("script-size");
                 }
                 if ((control_block[0] & TAPROOT_LEAF_MASK) == TAPROOT_LEAF_TAPSCRIPT) {
                     // Leaf version 0xc0 (aka Tapscript, see BIP 342)
@@ -452,12 +531,13 @@ std::pair<size_t, size_t> DatacarrierBytes(const CTransaction& tx, const CCoinsV
     for (const CTxIn& txin : tx.vin) {
         const CTxOut &utxo = view.AccessCoin(txin.prevout).out;
         auto[script, consensus_weight_per_byte] = GetScriptForTransactionInput(utxo.scriptPubKey, txin);
-        const auto dcb = script.DatacarrierBytes();
+        const auto dcb = script.DatacarrierBytes(0);
         ret.first += dcb.first;
         ret.second += dcb.second;
     }
-    for (const CTxOut& txout : tx.vout) {
-        const auto dcb = txout.scriptPubKey.DatacarrierBytes();
+    for (size_t i{tx.vout.size()}; i; ) {
+        const CTxOut& txout = tx.vout[--i];
+        const auto dcb = txout.scriptPubKey.DatacarrierBytes(tx.vout.size() - i);
         ret.first += dcb.first;
         ret.second += dcb.second;
     }
@@ -475,13 +555,14 @@ int32_t CalculateExtraTxWeight(const CTransaction& tx, const CCoinsViewCache& vi
             const CTxOut &utxo = view.AccessCoin(txin.prevout).out;
             auto[script, consensus_weight_per_byte] = GetScriptForTransactionInput(utxo.scriptPubKey, txin);
             if (weight_per_data_byte > consensus_weight_per_byte) {
-                const auto dcb = script.DatacarrierBytes();
+                const auto dcb = script.DatacarrierBytes(0);
                 mod_weight += (dcb.first + dcb.second) * (weight_per_data_byte - consensus_weight_per_byte);
             }
         }
         if (weight_per_data_byte > WITNESS_SCALE_FACTOR) {
-            for (const CTxOut& txout : tx.vout) {
-                const auto dcb = txout.scriptPubKey.DatacarrierBytes();
+            for (size_t i{tx.vout.size()}; i; ) {
+                const CTxOut& txout = tx.vout[--i];
+                const auto dcb = txout.scriptPubKey.DatacarrierBytes(tx.vout.size() - i);
                 mod_weight += (dcb.first + dcb.second) * (weight_per_data_byte - WITNESS_SCALE_FACTOR);
             }
         }

@@ -5,7 +5,7 @@
 
 #include <util/fs_helpers.h>
 
-#include <config/bitcoin-config.h> // IWYU pragma: keep
+#include <bitcoin-build-config.h> // IWYU pragma: keep
 
 #include <logging.h>
 #include <sync.h>
@@ -22,7 +22,7 @@
 #include <utility>
 
 #ifndef WIN32
-// for posix_fallocate, in configure.ac we check if it is present after this
+// for posix_fallocate, in cmake/introspection.cmake we check if it is present after this
 #ifdef __linux__
 
 #ifdef _POSIX_C_SOURCE
@@ -40,11 +40,6 @@
 #include <io.h> /* For _get_osfhandle, _chsize */
 #include <shlobj.h> /* For SHGetSpecialFolderPathW */
 #endif // WIN32
-
-#ifdef __APPLE__
-#include <sys/mount.h>
-#include <sys/param.h>
-#endif
 
 /** Mutex to protect dir_locks. */
 static GlobalMutex cs_dir_locks;
@@ -122,7 +117,7 @@ bool FileCommit(FILE* file)
         LogPrintf("FlushFileBuffers failed: %s\n", Win32ErrorString(GetLastError()));
         return false;
     }
-#elif defined(MAC_OSX) && defined(F_FULLFSYNC)
+#elif defined(__APPLE__) && defined(F_FULLFSYNC)
     if (fcntl(fileno(file), F_FULLFSYNC, 0) == -1) { // Manpage says "value other than -1" is returned on success
         LogPrintf("fcntl F_FULLFSYNC failed: %s\n", SysErrorString(errno));
         return false;
@@ -196,11 +191,14 @@ void AllocateFileRange(FILE* file, unsigned int offset, unsigned int length)
     HANDLE hFile = (HANDLE)_get_osfhandle(_fileno(file));
     LARGE_INTEGER nFileSize;
     int64_t nEndPos = (int64_t)offset + length;
-    nFileSize.u.LowPart = nEndPos & 0xFFFFFFFF;
-    nFileSize.u.HighPart = nEndPos >> 32;
-    SetFilePointerEx(hFile, nFileSize, 0, FILE_BEGIN);
-    SetEndOfFile(hFile);
-#elif defined(MAC_OSX)
+    if (GetFileSizeEx(hFile, &nFileSize) && (int64_t{nFileSize.u.HighPart} << 32 | nFileSize.u.LowPart) <= nEndPos) {
+        nFileSize.u.LowPart = nEndPos & 0xFFFFFFFF;
+        nFileSize.u.HighPart = nEndPos >> 32;
+        if (SetFilePointerEx(hFile, nFileSize, 0, FILE_BEGIN)) {
+            SetEndOfFile(hFile);
+        }
+    }
+#elif 0
     // OSX specific version
     // NOTE: Contrary to other OS versions, the OSX version assumes that
     // NOTE: offset is the size of the file.
@@ -217,21 +215,32 @@ void AllocateFileRange(FILE* file, unsigned int offset, unsigned int length)
     ftruncate(fileno(file), static_cast<off_t>(offset) + length);
 #else
 #if defined(HAVE_POSIX_FALLOCATE)
-    // Use posix_fallocate to advise the kernel how much data we have to write,
-    // if this system supports it.
-    off_t nEndPos = (off_t)offset + length;
-    if (0 == posix_fallocate(fileno(file), 0, nEndPos)) return;
+    // Version using posix_fallocate
+    if (0 == posix_fallocate(fileno(file), offset, length)) return;
 #endif
     // Fallback version
     // TODO: just write one byte per block
-    static const char buf[65536] = {};
+    uint8_t buf[65536];
     if (fseek(file, offset, SEEK_SET)) {
         return;
     }
+    clearerr(file);
     while (length > 0) {
         unsigned int now = 65536;
         if (length < now)
             now = length;
+        const size_t rlen = fread(buf, 1, now, file);
+        if (rlen < now) {
+            if (ferror(file)) {
+                // Don't clobber anything, just give up
+                clearerr(file);
+                return;
+            }
+            memset(&buf[rlen], 0, now - rlen);
+            if (0 != fseek(file, -rlen, SEEK_CUR)) {
+                return;
+            }
+        }
         fwrite(buf, 1, now, file); // allowed to fail; this function is advisory anyway
         length -= now;
     }
@@ -393,17 +402,3 @@ std::optional<fs::perms> InterpretPermString(const std::string& s)
         return std::nullopt;
     }
 }
-
-#ifdef __APPLE__
-FSType GetFilesystemType(const fs::path& path) {
-    struct statfs fs_info;
-    if (statfs(path.c_str(), &fs_info) != 0) {
-        return FSType::ERROR;
-    }
-
-    if (strcmp(fs_info.f_fstypename, "exfat") == 0) {
-        return FSType::EXFAT;
-    }
-    return FSType::OTHER;
-}
-#endif

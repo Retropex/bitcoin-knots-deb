@@ -41,9 +41,12 @@ def get_socket_inodes(pid):
     base = '/proc/%i/fd' % pid
     inodes = []
     for item in os.listdir(base):
-        target = os.readlink(os.path.join(base, item))
-        if target.startswith('socket:'):
-            inodes.append(int(target[8:-1]))
+        try:
+            target = os.readlink(os.path.join(base, item))
+            if target.startswith('socket:'):
+                inodes.append(int(target[8:-1]))
+        except FileNotFoundError:
+            pass
     return inodes
 
 def _remove_empty(array):
@@ -171,3 +174,10 @@ def test_unix_socket():
         return False
     else:
         return True
+
+def format_addr_port(addr, port):
+    '''Return either "addr:port" or "[addr]:port" based on whether addr looks like an IPv6 address.'''
+    if ":" in addr:
+        return f"[{addr}]:{port}"
+    else:
+        return f"{addr}:{port}"

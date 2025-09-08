@@ -12,7 +12,6 @@ import os
 import platform
 import shutil
 import stat
-import time
 
 from test_framework.authproxy import JSONRPCException
 from test_framework.blocktools import COINBASE_MATURITY
@@ -21,6 +20,7 @@ from test_framework.test_node import ErrorMatch
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
+    ensure_for,
     get_rpc_proxy,
 )
 
@@ -79,6 +79,24 @@ class MultiWalletTest(BitcoinTestFramework):
         self.stop_nodes()
         assert_equal(os.path.isfile(wallet_dir(self.default_wallet_name, self.wallet_data_filename)), True)
 
+        self.log.info("Verify warning is emitted when failing to scan the wallets directory")
+        if platform.system() == 'Windows':
+            self.log.warning('Skipping test involving chmod as Windows does not support it.')
+        elif os.geteuid() == 0:
+            self.log.warning('Skipping test involving chmod as it requires a non-root user.')
+        else:
+            self.start_node(0)
+            with self.nodes[0].assert_debug_log(unexpected_msgs=['Error scanning directory entries under'], expected_msgs=[]):
+                result = self.nodes[0].listwalletdir()
+                assert_equal(result, {'wallets': [{'name': self.default_wallet_name}]})
+            os.chmod(data_dir('wallets'), 0)
+            with self.nodes[0].assert_debug_log(expected_msgs=['Error scanning directory entries under']):
+                result = self.nodes[0].listwalletdir()
+                assert_equal(result, {'wallets': []})
+            self.stop_node(0)
+            # Restore permissions
+            os.chmod(data_dir('wallets'), stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+
         # create symlink to verify wallet directory path can be referenced
         # through symlink
         os.mkdir(wallet_dir('w7'))
@@ -132,7 +150,7 @@ class MultiWalletTest(BitcoinTestFramework):
         os.mkdir(wallet_dir('no_access'))
         os.chmod(wallet_dir('no_access'), 0)
         try:
-            with self.nodes[0].assert_debug_log(expected_msgs=['Error scanning']):
+            with self.nodes[0].assert_debug_log(expected_msgs=["Error while scanning wallet dir"]):
                 walletlist = self.nodes[0].listwalletdir()['wallets']
         finally:
             # Need to ensure access is restored for cleanup
@@ -204,7 +222,7 @@ class MultiWalletTest(BitcoinTestFramework):
         self.restart_node(0, ['-nowallet', '-walletdir=' + competing_wallet_dir])
         self.nodes[0].createwallet(self.default_wallet_name)
         if self.options.descriptors:
-            exp_stderr = f"Error: SQLiteDatabase: Unable to obtain an exclusive lock on the database, is it being used by another instance of {self.config['environment']['PACKAGE_NAME']}?"
+            exp_stderr = f"Error: SQLiteDatabase: Unable to obtain an exclusive lock on the database, is it being used by another instance of {self.config['environment']['CLIENT_NAME']}?"
         else:
             exp_stderr = r"Error: Error initializing wallet database environment \"\S+competing_walletdir\S*\"!"
         self.nodes[1].assert_start_raises_init_error(['-walletdir=' + competing_wallet_dir], exp_stderr, match=ErrorMatch.PARTIAL_REGEX)
@@ -359,10 +377,10 @@ class MultiWalletTest(BitcoinTestFramework):
         self.log.info("Test dynamic wallet unloading")
 
         # Test `unloadwallet` errors
-        assert_raises_rpc_error(-3, "JSON value of type null is not of expected type string", self.nodes[0].unloadwallet)
+        assert_raises_rpc_error(-8, "Either the RPC endpoint wallet or the wallet name parameter must be provided", self.nodes[0].unloadwallet)
         assert_raises_rpc_error(-18, "Requested wallet does not exist or is not loaded", self.nodes[0].unloadwallet, "dummy")
         assert_raises_rpc_error(-18, "Requested wallet does not exist or is not loaded", node.get_wallet_rpc("dummy").unloadwallet)
-        assert_raises_rpc_error(-8, "RPC endpoint wallet and wallet_name parameter specify different wallets", w1.unloadwallet, "w2"),
+        assert_raises_rpc_error(-8, "The RPC endpoint wallet and the wallet name parameter specify different wallets", w1.unloadwallet, "w2"),
 
         # Successfully unload the specified wallet name
         self.nodes[0].unloadwallet("w1")
@@ -379,8 +397,7 @@ class MultiWalletTest(BitcoinTestFramework):
         w2.encryptwallet('test')
         w2.walletpassphrase('test', 1)
         w2.unloadwallet()
-        time.sleep(1.1)
-        assert 'w2' not in self.nodes[0].listwallets()
+        ensure_for(duration=1.1, f=lambda: 'w2' not in self.nodes[0].listwallets())
 
         # Successfully unload all wallets
         for wallet_name in self.nodes[0].listwallets():

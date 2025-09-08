@@ -57,7 +57,7 @@ _bitcoin_cli() {
 
     if ((cword > 3)); then
         case ${words[cword-3]} in
-            addnode|converttopsbt|dumptxoutset|getdescriptoractivity|gettxout|gettxoutsetinfo)
+            addnode|converttopsbt|getdescriptoractivity|gettxout|gettxoutsetinfo)
                 COMPREPLY=( $( compgen -W "false true" -- "$cur" ) )
                 return 0
                 ;;

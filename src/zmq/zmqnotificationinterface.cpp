@@ -2,9 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
-#endif
+#include <bitcoin-build-config.h> // IWYU pragma: keep
 
 #include <zmq/zmqnotificationinterface.h>
 
@@ -98,9 +96,9 @@ bool CZMQNotificationInterface::Initialize()
 {
     int major = 0, minor = 0, patch = 0;
     zmq_version(&major, &minor, &patch);
-    LogPrint(BCLog::ZMQ, "version %d.%d.%d\n", major, minor, patch);
+    LogDebug(BCLog::ZMQ, "version %d.%d.%d\n", major, minor, patch);
 
-    LogPrint(BCLog::ZMQ, "Initialize notification interface\n");
+    LogDebug(BCLog::ZMQ, "Initialize notification interface\n");
     assert(!pcontext);
 
 #ifdef ENABLE_WALLET
@@ -117,9 +115,9 @@ bool CZMQNotificationInterface::Initialize()
 
     for (auto& notifier : notifiers) {
         if (notifier->Initialize(pcontext)) {
-            LogPrint(BCLog::ZMQ, "Notifier %s ready (address = %s)\n", notifier->GetType(), notifier->GetAddress());
+            LogDebug(BCLog::ZMQ, "Notifier %s ready (address = %s)\n", notifier->GetType(), notifier->GetAddress());
         } else {
-            LogPrint(BCLog::ZMQ, "Notifier %s failed (address = %s)\n", notifier->GetType(), notifier->GetAddress());
+            LogDebug(BCLog::ZMQ, "Notifier %s failed (address = %s)\n", notifier->GetType(), notifier->GetAddress());
             return false;
         }
     }
@@ -130,7 +128,7 @@ bool CZMQNotificationInterface::Initialize()
 // Called during shutdown sequence
 void CZMQNotificationInterface::Shutdown()
 {
-    LogPrint(BCLog::ZMQ, "Shutdown notification interface\n");
+    LogDebug(BCLog::ZMQ, "Shutdown notification interface\n");
 
 #ifdef ENABLE_WALLET
     m_wtx_added_connection.disconnect();
@@ -139,7 +137,7 @@ void CZMQNotificationInterface::Shutdown()
     if (pcontext)
     {
         for (auto& notifier : notifiers) {
-            LogPrint(BCLog::ZMQ, "Shutdown notifier %s at %s\n", notifier->GetType(), notifier->GetAddress());
+            LogDebug(BCLog::ZMQ, "Shutdown notifier %s at %s\n", notifier->GetType(), notifier->GetAddress());
             notifier->Shutdown();
         }
         zmq_ctx_term(pcontext);

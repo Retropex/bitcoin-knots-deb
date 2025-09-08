@@ -7,14 +7,16 @@
 #include <common/system.h>
 #include <key.h>
 #include <prevector.h>
-#include <pubkey.h>
 #include <random.h>
+#include <script/script.h>
 
+#include <cstddef>
+#include <cstdint>
+#include <utility>
 #include <vector>
 
 static const size_t BATCHES = 101;
 static const size_t BATCH_SIZE = 30;
-static const int PREVECTOR_SIZE = 28;
 static const unsigned int QUEUE_BATCH_SIZE = 128;
 
 // This Benchmark tests the CheckQueue with a slightly realistic workload,
@@ -32,9 +34,9 @@ static void CCheckQueueSpeedPrevectorJob(benchmark::Bench& bench)
         explicit PrevectorJob(FastRandomContext& insecure_rand){
             p.resize(insecure_rand.randrange(PREVECTOR_SIZE*2));
         }
-        bool operator()()
+        std::optional<int> operator()()
         {
-            return true;
+            return std::nullopt;
         }
     };
 
@@ -60,7 +62,7 @@ static void CCheckQueueSpeedPrevectorJob(benchmark::Bench& bench)
         }
         // control waits for completion by RAII, but
         // it is done explicitly here for clarity
-        control.Wait();
+        control.Complete();
     });
 }
 BENCHMARK(CCheckQueueSpeedPrevectorJob, benchmark::PriorityLevel::HIGH);

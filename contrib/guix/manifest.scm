@@ -1,5 +1,4 @@
 (use-modules (gnu packages)
-             (gnu packages autotools)
              ((gnu packages bash) #:select (bash-minimal))
              (gnu packages bison)
              ((gnu packages certs) #:select (nss-certs))
@@ -14,10 +13,9 @@
              (gnu packages image)
              (gnu packages imagemagick)
              ((gnu packages installers) #:select (nsis-x86_64))
-             ((gnu packages linux) #:select (linux-libre-headers-6.1 util-linux))
+             ((gnu packages linux) #:select (linux-libre-headers-6.1))
              (gnu packages llvm)
              (gnu packages mingw)
-             (gnu packages moreutils)
              (gnu packages pkg-config)
              ((gnu packages python) #:select (python-minimal))
              ((gnu packages python-build) #:select (python-tomli python-poetry-core))
@@ -25,7 +23,6 @@
              ((gnu packages tls) #:select (openssl))
              ((gnu packages version-control) #:select (git-minimal))
              (guix build-system cmake)
-             (guix build-system font)
              (guix build-system gnu)
              (guix build-system python)
              (guix build-system pyproject)
@@ -35,7 +32,7 @@
              (guix git-download)
              ((guix licenses) #:prefix license:)
              (guix packages)
-             ((guix utils) #:select (substitute-keyword-arguments)))
+             ((guix utils) #:select (cc-for-target substitute-keyword-arguments)))
 
 (define-syntax-rule (search-our-patches file-name ...)
   "Return the list of absolute file names corresponding to each
@@ -97,17 +94,7 @@ chain for " target " development."))
       (home-page (package-home-page xgcc))
       (license (package-license xgcc)))))
 
-(define base-gcc
-  (package
-    (inherit gcc-12) ;; 12.3.0
-    (version "12.4.0")
-    (source (origin
-              (method url-fetch)
-              (uri (string-append "mirror://gnu/gcc/gcc-"
-                                  version "/gcc-" version ".tar.xz"))
-              (sha256
-               (base32
-                "0xcida8l2wykvvzvpcrcn649gj0ijn64gwxbplacpg6c0hk6akvh"))))))
+(define base-gcc gcc-13) ;; 13.3.0
 
 (define base-linux-kernel-headers linux-libre-headers-6.1)
 
@@ -166,25 +153,6 @@ desirable for building Bitcoin Core release binaries."
 chain for " target " development."))
       (home-page (package-home-page pthreads-xgcc))
       (license (package-license pthreads-xgcc)))))
-
-(define-public font-tuffy
-  (package
-    (name "font-tuffy")
-    (version "20120614")
-    (source
-     (origin
-       (method url-fetch)
-       (uri (string-append "http://tulrich.com/fonts/tuffy-" version ".tar.gz"))
-       (file-name (string-append name "-" version ".tar.gz"))
-       (sha256
-        (base32
-         "02vf72bgrp30vrbfhxjw82s115z27dwfgnmmzfb0n9wfhxxfpyf6"))))
-    (build-system font-build-system)
-    (home-page "http://tulrich.com/fonts/")
-    (synopsis "The Tuffy Truetype Font Family")
-    (description
-     "Thatcher Ulrich's first outline font design. He started with the goal of producing a neutral, readable sans-serif text font. There are lots of \"expressive\" fonts out there, but he wanted to start with something very plain and clean, something he might want to actually use. ")
-    (license license:public-domain)))
 
 ;; While LIEF is packaged in Guix, we maintain our own package,
 ;; to simplify building, and more easily apply updates.
@@ -457,6 +425,7 @@ inspecting signatures in Mach-O binaries.")
             ;; https://gcc.gnu.org/install/configure.html
             (list "--enable-threads=posix",
                   "--enable-default-ssp=yes",
+                  "--disable-gcov",
                   building-on)))))))
 
 (define-public linux-base-gcc
@@ -471,6 +440,8 @@ inspecting signatures in Mach-O binaries.")
                   "--enable-default-ssp=yes",
                   "--enable-default-pie=yes",
                   "--enable-standard-branch-protection=yes",
+                  "--enable-cet=yes",
+                  "--disable-gcov",
                   building-on)))
         ((#:phases phases)
           `(modify-phases ,phases
@@ -525,13 +496,42 @@ inspecting signatures in Mach-O binaries.")
                    (("^install-others =.*$")
                     (string-append "install-others = " out "/etc/rpc\n")))))))))))))
 
+;; The sponge tool from moreutils.
+(define-public sponge
+  (package
+    (name "sponge")
+    (version "0.69")
+    (source (origin
+              (method url-fetch)
+              (uri (string-append
+                    "https://git.joeyh.name/index.cgi/moreutils.git/snapshot/
+                    moreutils-" version ".tar.gz"))
+              (file-name (string-append "moreutils-" version ".tar.gz"))
+              (sha256
+               (base32
+                "1l859qnzccslvxlh5ghn863bkq2vgmqgnik6jr21b9kc6ljmsy8g"))))
+    (build-system gnu-build-system)
+    (arguments
+     (list #:phases
+           #~(modify-phases %standard-phases
+               (delete 'configure)
+               (replace 'install
+                (lambda* (#:key outputs #:allow-other-keys)
+                  (let ((bin (string-append (assoc-ref outputs "out") "/bin")))
+                  (install-file "sponge" bin)))))
+           #:make-flags
+           #~(list "sponge" (string-append "CC=" #$(cc-for-target)))))
+    (home-page "https://joeyh.name/code/moreutils/")
+    (synopsis "Miscellaneous general-purpose command-line tools")
+    (description "Just sponge")
+    (license license:gpl2+)))
+
 (packages->manifest
  (append
   (list ;; The Basics
         bash-minimal
         which
         coreutils-minimal
-        util-linux
         ;; File(system) inspection
         file
         grep
@@ -541,18 +541,15 @@ inspecting signatures in Mach-O binaries.")
         patch
         gawk
         sed
-        moreutils
+        sponge
         ;; Compression and archiving
         tar
         gzip
         xz
         ;; Build tools
-        gcc-toolchain-12
+        gcc-toolchain-13
         cmake-minimal
         gnu-make
-        libtool
-        autoconf-2.71
-        automake
         pkg-config
         imagemagick
         libicns
@@ -565,14 +562,14 @@ inspecting signatures in Mach-O binaries.")
         python-lief)
   (let ((target (getenv "HOST")))
     (cond ((string-suffix? "-mingw32" target)
-           (list font-tuffy zip
+           (list zip
                  (make-mingw-pthreads-cross-toolchain "x86_64-w64-mingw32")
                  nsis-x86_64
                  nss-certs
                  osslsigncode))
           ((string-contains target "-linux-")
            (list bison
-                 (list gcc-toolchain-12 "static")
+                 (list gcc-toolchain-13 "static")
                  (make-bitcoin-cross-toolchain target)))
           ((string-contains target "darwin")
            (list clang-toolchain-18

@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012 The Bitcoin Core developers
+// Copyright (c) 2011-present The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -18,11 +18,6 @@
 namespace wallet {
 static const std::string WALLET_ENDPOINT_BASE = "/wallet/";
 const std::string HELP_REQUIRING_PASSPHRASE{"\nRequires wallet passphrase to be set with walletpassphrase call if wallet is encrypted.\n"};
-
-int64_t ParseISO8601DateTime(const std::string& str)
-{
-    return ::ParseISO8601DateTime(str).value_or(0);
-}
 
 bool GetAvoidReuseFlag(const CWallet& wallet, const UniValue& param) {
     bool can_avoid_reuse = wallet.IsWalletFlagSet(WALLET_FLAG_AVOID_REUSE);
@@ -48,6 +43,27 @@ bool ParseIncludeWatchonly(const UniValue& include_watchonly, const CWallet& wal
 
     // otherwise return whatever include_watchonly was set to
     return include_watchonly.get_bool();
+}
+
+std::string EnsureUniqueWalletName(const JSONRPCRequest& request, const std::string* wallet_name)
+{
+    std::string endpoint_wallet;
+    if (GetWalletNameFromJSONRPCRequest(request, endpoint_wallet)) {
+        // wallet endpoint was used
+        if (wallet_name && *wallet_name != endpoint_wallet) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                "The RPC endpoint wallet and the wallet name parameter specify different wallets");
+        }
+        return endpoint_wallet;
+    }
+
+    // Not a wallet endpoint; parameter must be provided
+    if (!wallet_name) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+            "Either the RPC endpoint wallet or the wallet name parameter must be provided");
+    }
+
+    return *wallet_name;
 }
 
 bool GetWalletNameFromJSONRPCRequest(const JSONRPCRequest& request, std::string& wallet_name)

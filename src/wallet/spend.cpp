@@ -35,6 +35,11 @@ using common::TransactionErrorString;
 using interfaces::FoundBlock;
 using node::TransactionError;
 
+TRACEPOINT_SEMAPHORE(coin_selection, selected_coins);
+TRACEPOINT_SEMAPHORE(coin_selection, normal_create_tx_internal);
+TRACEPOINT_SEMAPHORE(coin_selection, attempting_aps_create_tx);
+TRACEPOINT_SEMAPHORE(coin_selection, aps_create_tx_internal);
+
 namespace wallet {
 static constexpr size_t OUTPUT_GROUP_MAX_ENTRIES{100};
 
@@ -937,7 +942,11 @@ static bool IsCurrentForAntiFeeSniping(interfaces::Chain& chain, const uint256& 
     return true;
 }
 
-void DiscourageFeeSniping(CMutableTransaction& tx, FastRandomContext& rng_fast,
+/**
+ * Set a height-based locktime for new transactions (uses the height of the
+ * current chain tip unless we are not synced with the current chain
+ */
+static void DiscourageFeeSniping(CMutableTransaction& tx, FastRandomContext& rng_fast,
                                  interfaces::Chain& chain, const uint256& block_hash, int block_height)
 {
     // All inputs must be added by now
@@ -991,6 +1000,22 @@ void DiscourageFeeSniping(CMutableTransaction& tx, FastRandomContext& rng_fast,
         // The wallet does not support any other sequence-use right now.
         assert(false);
     }
+}
+
+void MaybeDiscourageFeeSniping2(const CWallet &wallet,
+                               CMutableTransaction& tx)
+{
+    for (const CTxIn& tx_in : tx.vin) {
+        // Checks sequence values consistent with DiscourageFeeSniping
+        if (tx_in.nSequence != CTxIn::MAX_SEQUENCE_NONFINAL && tx_in.nSequence != MAX_BIP125_RBF_SEQUENCE) {
+            // If an input has an incompatible sequence, we can't do anti-fee-sniping
+            return;
+        }
+    }
+
+    FastRandomContext rng_fast;
+    LOCK(wallet.cs_wallet);
+    DiscourageFeeSniping(tx, rng_fast, wallet.chain(), wallet.GetLastBlockHash(), wallet.GetLastBlockHeight());
 }
 
 size_t GetSerializeSizeForRecipient(const CRecipient& recipient)
@@ -1160,7 +1185,7 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
         return util::Error{err.empty() ?_("Insufficient funds") : err};
     }
     const SelectionResult& result = *select_coins_res;
-    TRACE5(coin_selection, selected_coins,
+    TRACEPOINT(coin_selection, selected_coins,
            wallet.GetName().c_str(),
            GetAlgorithmName(result.GetAlgo()).c_str(),
            result.GetTarget(),
@@ -1168,6 +1193,7 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
            result.GetSelectedValue());
 
     // vouts to the payees
+    txNew.vout.reserve(vecSend.size() + 1); // + 1 because of possible later insert
     for (const auto& recipient : vecSend)
     {
         txNew.vout.emplace_back(recipient.nAmount, GetScriptForDestination(recipient.dest));
@@ -1218,6 +1244,7 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
     // behavior."
     bool use_anti_fee_sniping = true;
     const uint32_t default_sequence{coin_control.m_signal_bip125_rbf.value_or(wallet.m_signal_rbf) ? MAX_BIP125_RBF_SEQUENCE : CTxIn::MAX_SEQUENCE_NONFINAL};
+    txNew.vin.reserve(selected_coins.size());
     for (const auto& coin : selected_coins) {
         std::optional<uint32_t> sequence = coin_control.GetSequence(coin->outpoint);
         if (sequence) {
@@ -1379,7 +1406,7 @@ util::Result<CreatedTransactionResult> CreateTransaction(
     LOCK(wallet.cs_wallet);
 
     auto res = CreateTransactionInternal(wallet, vecSend, change_pos, coin_control, sign);
-    TRACE4(coin_selection, normal_create_tx_internal,
+    TRACEPOINT(coin_selection, normal_create_tx_internal,
            wallet.GetName().c_str(),
            bool(res),
            res ? res->fee : 0,
@@ -1388,7 +1415,7 @@ util::Result<CreatedTransactionResult> CreateTransaction(
     const auto& txr_ungrouped = *res;
     // try with avoidpartialspends unless it's enabled already
     if (txr_ungrouped.fee > 0 /* 0 means non-functional fee rate estimation */ && wallet.m_max_aps_fee > -1 && !coin_control.m_avoid_partial_spends) {
-        TRACE1(coin_selection, attempting_aps_create_tx, wallet.GetName().c_str());
+        TRACEPOINT(coin_selection, attempting_aps_create_tx, wallet.GetName().c_str());
         CCoinControl tmp_cc = coin_control;
         tmp_cc.m_avoid_partial_spends = true;
 
@@ -1400,7 +1427,7 @@ util::Result<CreatedTransactionResult> CreateTransaction(
         auto txr_grouped = CreateTransactionInternal(wallet, vecSend, change_pos, tmp_cc, sign);
         // if fee of this alternative one is within the range of the max fee, we use this one
         const bool use_aps{txr_grouped.has_value() ? (txr_grouped->fee <= txr_ungrouped.fee + wallet.m_max_aps_fee) : false};
-        TRACE5(coin_selection, aps_create_tx_internal,
+        TRACEPOINT(coin_selection, aps_create_tx_internal,
                wallet.GetName().c_str(),
                use_aps,
                txr_grouped.has_value(),

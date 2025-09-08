@@ -2,7 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <config/bitcoin-config.h> // IWYU pragma: keep
+#include <bitcoin-build-config.h> // IWYU pragma: keep
 
 #include <qt/optionsdialog.h>
 #include <qt/forms/ui_optionsdialog.h>
@@ -19,16 +19,17 @@
 #include <consensus/consensus.h> // for MAX_BLOCK_SERIALIZED_SIZE
 #include <index/blockfilterindex.h>
 #include <interfaces/node.h>
-#include <node/chainstatemanager_args.h>
 #include <netbase.h>
+#include <node/caches.h>
+#include <node/chainstatemanager_args.h>
 #include <node/mempool_args.h> // for ParseDustDynamicOpt
 #include <outputtype.h>
 #include <primitives/transaction.h> // for WITNESS_SCALE_FACTOR
-#include <txdb.h>
 #include <txmempool.h> // for maxmempoolMinimum
 #include <util/check.h>
 #include <util/strencodings.h>
 #include <chrono>
+#include <cmath>
 #include <utility>
 
 #include <QApplication>
@@ -209,7 +210,7 @@ void setupFontOptions(QComboBox* cb, QLabel* preview)
 {
     QFont embedded_font{GUIUtil::fixedPitchFont(true)};
     QFont system_font{GUIUtil::fixedPitchFont(false)};
-    cb->addItem(QObject::tr("Embedded \"%1\"").arg(QFontInfo(embedded_font).family()), QVariant::fromValue(OptionsModel::FontChoice{OptionsModel::FontChoiceAbstract::EmbeddedFont}));
+    cb->addItem(QObject::tr("%1").arg(QFontInfo(embedded_font).family()), QVariant::fromValue(OptionsModel::FontChoice{OptionsModel::FontChoiceAbstract::EmbeddedFont}));
     cb->addItem(QObject::tr("Default system font \"%1\"").arg(QFontInfo(system_font).family()), QVariant::fromValue(OptionsModel::FontChoice{OptionsModel::FontChoiceAbstract::BestSystemFont}));
     cb->addItem(QObject::tr("Custom…"));
 
@@ -246,15 +247,18 @@ OptionsDialog::OptionsDialog(QWidget* parent, bool enableWallet)
     ui->verticalLayout->setStretchFactor(ui->tabWidget, 1);
 
     /* Main elements init */
-    ui->databaseCache->setMinimum(nMinDbCache);
-    ui->databaseCache->setMaximum(nMaxDbCache);
+    ui->databaseCache->setRange(MIN_DB_CACHE >> 20, std::numeric_limits<int>::max());
     ui->threadsScriptVerif->setMinimum(-GetNumCores());
     ui->threadsScriptVerif->setMaximum(MAX_SCRIPTCHECK_THREADS);
     ui->pruneWarning->setVisible(false);
     ui->pruneWarning->setStyleSheet("QLabel { color: red; }");
 
     ui->pruneSizeMiB->setEnabled(false);
-    connect(ui->prune, &QCheckBox::stateChanged, [this](int state){
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 7, 0))
+    connect(ui->prune, &QCheckBox::checkStateChanged, [this](const Qt::CheckState state){
+#else
+    connect(ui->prune, &QCheckBox::stateChanged, [this](const int state){
+#endif
         ui->pruneSizeMiB->setEnabled(state == Qt::Checked);
     });
 
@@ -264,9 +268,6 @@ OptionsDialog::OptionsDialog(QWidget* parent, bool enableWallet)
     /* Network elements init */
 #ifndef USE_UPNP
     ui->mapPortUpnp->setEnabled(false);
-#endif
-#ifndef USE_NATPMP
-    ui->mapPortNatpmp->setEnabled(false);
 #endif
 
     ui->proxyIp->setEnabled(false);
@@ -306,6 +307,12 @@ OptionsDialog::OptionsDialog(QWidget* parent, bool enableWallet)
     blockreconstructionextratxn->setMaximum(std::numeric_limits<int>::max());
     CreateOptionUI(ui->verticalLayout_Network, blockreconstructionextratxn, tr("Keep at most %s extra transactions in memory for compact block reconstruction"));
 
+    blockreconstructionextratxnsize = new QDoubleSpinBox(ui->tabNetwork);
+    blockreconstructionextratxnsize->setDecimals(0);
+    blockreconstructionextratxnsize->setMinimum(0);
+    blockreconstructionextratxnsize->setMaximum(std::numeric_limits<size_t>::max() / 1'000'000);
+    CreateOptionUI(ui->verticalLayout_Network, blockreconstructionextratxnsize, tr("Limit extra transactions for compact block reconstruction to %s MB"));
+
     ui->verticalLayout_Network->addItem(spacer);
 
     prevwidget = ui->peerbloomfilters;
@@ -335,7 +342,7 @@ OptionsDialog::OptionsDialog(QWidget* parent, bool enableWallet)
     mempooltruc = new QValueComboBox(tabMempool);
     mempooltruc->addItem(QString("do not relay or mine at all"), QVariant("reject"));
     mempooltruc->addItem(QString("handle the same as other transactions"), QVariant("accept"));
-    mempooltruc->addItem(QString("impose stricter limits requested (DRAFT)"), QVariant("enforce"));
+    mempooltruc->addItem(QString("impose stricter limits requested"), QVariant("enforce"));
     mempooltruc->setToolTip(tr("Some transactions signal a request to limit both themselves and other related transactions to more restrictive expectations. Specifically, this would disallow more than 1 unconfirmed predecessor or spending transaction, as well as smaller size limits (see BIP 431 for details), regardless of what policy you have configured."));
     CreateOptionUI(verticalLayout_Mempool, mempooltruc, tr("Transactions requesting more restrictive policy limits (TRUC): %s"));
 
@@ -345,8 +352,7 @@ OptionsDialog::OptionsDialog(QWidget* parent, bool enableWallet)
     CreateOptionUI(verticalLayout_Mempool, maxorphantx, tr("Keep at most %s unconnected transactions in memory"));
 
     maxmempool = new QSpinBox(tabMempool);
-    const int64_t nMempoolSizeMinMB = maxmempoolMinimumBytes(gArgs.GetIntArg("-limitdescendantsize", DEFAULT_DESCENDANT_SIZE_LIMIT_KVB) * 1'000) / 1'000'000;
-    maxmempool->setMinimum(nMempoolSizeMinMB);
+    maxmempool->setMinimum(1);
     maxmempool->setMaximum(std::numeric_limits<int>::max());
     CreateOptionUI(verticalLayout_Mempool, maxmempool, tr("Keep the transaction memory pool below %s MB"));
 
@@ -370,6 +376,12 @@ OptionsDialog::OptionsDialog(QWidget* parent, bool enableWallet)
     verticalLayout_Spamfiltering->addWidget(rejectunknownscripts);
     FixTabOrder(rejectunknownscripts);
 
+    rejectunknownwitness = new QCheckBox(groupBox_Spamfiltering);
+    rejectunknownwitness->setText(tr("Reject unknown witness script versions"));
+    rejectunknownwitness->setToolTip(tr("Some attempts to spam Bitcoin intentionally use undefined witness script formats reserved for future use. By enabling this option, your node will reject transactions using these undefined/future versions. Note that if you send to many addressses in a single transaction, the entire transaction may be rejected if any single one of them attempts to use an undefined format."));
+    verticalLayout_Spamfiltering->addWidget(rejectunknownwitness);
+    FixTabOrder(rejectunknownwitness);
+
     rejectparasites = new QCheckBox(groupBox_Spamfiltering);
     rejectparasites->setText(tr("Reject parasite transactions"));
     rejectparasites->setToolTip(tr("With this option enabled, transactions related to parasitic overlay protocols will be ignored. Parasites are transactions using Bitcoin as a technical infrastructure to animate other protocols, unrelated to ordinary money transfers."));
@@ -384,6 +396,17 @@ OptionsDialog::OptionsDialog(QWidget* parent, bool enableWallet)
 
     minrelaytxfee = new BitcoinAmountField(groupBox_Spamfiltering);
     CreateOptionUI(verticalLayout_Spamfiltering, minrelaytxfee, tr("Ignore transactions offering miners less than %s per kvB in transaction fees."));
+
+    minrelaycoinblocks = new BitcoinAmountField(groupBox_Spamfiltering);
+    minrelaycoinblocks->SetMaxValue(std::numeric_limits<CAmount>::max());
+    minrelaycoinblocks->setToolTip(tr("This effectively acts as a rate limit. When bitcoins are spent, they reset to zero \"coinblocks\" (aka coin age) and slowly build up more coinblocks based on their value each block afterward. Small coins take longer than large amounts."));
+    CreateOptionUI(verticalLayout_Spamfiltering, minrelaycoinblocks, tr("Delay accepting transactions spending coins that have been at rest less than %s per block."));
+
+    minrelaymaturity = new QSpinBox(groupBox_Spamfiltering);
+    minrelaymaturity->setMinimum(0);
+    minrelaymaturity->setMaximum(std::numeric_limits<int>::max());
+    minrelaymaturity->setToolTip(tr("This effectively acts as a rate limit. When bitcoins are spent, they reset to zero blocks and slowly mature each block afterward, regardless of their value."));
+    CreateOptionUI(verticalLayout_Spamfiltering, minrelaymaturity, tr("Delay accepting transactions spending coins that have been at rest fewer than %s blocks."));
 
     bytespersigop = new QSpinBox(groupBox_Spamfiltering);
     bytespersigop->setMinimum(1);
@@ -415,6 +438,33 @@ OptionsDialog::OptionsDialog(QWidget* parent, bool enableWallet)
     limitdescendantsize->setMaximum(std::numeric_limits<int>::max());
     CreateOptionUI(verticalLayout_Spamfiltering, limitdescendantsize, tr("Ignore transactions if any ancestor would have more than %s kilobytes of unconfirmed descendants."));
 
+    connect(maxmempool, &QSpinBox::editingFinished, [&]() {
+        const int64_t limitdescendantsize_max_kvB = limitdescendantsizeMaximumVBytes(int64_t{maxmempool->value()} * 1'000'000) / 1'000;
+        if (limitdescendantsize_max_kvB < limitdescendantsize->value()) {
+            if (QMessageBox::question(this, tr("Confirm change"), tr("Decreasing your mempool size to %1 MB requires also decreasing your unconfirmed descendants size limit to %2 kB (currently %3 kB, on the Spam filtering tab).<br><br>Do you wish to make these changes?").arg(maxmempool->value()).arg(limitdescendantsize_max_kvB).arg(limitdescendantsize->value()), QMessageBox::Apply | QMessageBox::Cancel) == QMessageBox::Apply) {
+                limitdescendantsize->setValue(limitdescendantsize_max_kvB);
+                limitdescendantsize->setProperty("pv", (int)limitdescendantsize_max_kvB);
+            } else {  // Cancel
+                maxmempool->setValue(maxmempool->property("pv").toInt());
+                return;
+            }
+        }
+        maxmempool->setProperty("pv", maxmempool->value());
+    });
+    connect(limitdescendantsize, &QSpinBox::editingFinished, [&]() {
+        const int maxmempool_min_MB = std::ceil(maxmempoolMinimumBytes(int64_t{limitdescendantsize->value()} * 1'000) / 1'000'000.0);
+        if (maxmempool_min_MB > maxmempool->value()) {
+            if (QMessageBox::question(this, tr("Confirm change"), tr("Increasing your descendant size limit to %1 kB requires also increasing your mempool size to %2 MB (currently %3 MB, on the Mempool tab).<br><br>Do you wish to make these changes?").arg(limitdescendantsize->value()).arg(maxmempool_min_MB).arg(maxmempool->value()), QMessageBox::Apply | QMessageBox::Cancel) == QMessageBox::Apply) {
+                maxmempool->setValue(maxmempool_min_MB);
+                maxmempool->setProperty("pv", maxmempool_min_MB);
+            } else {  // Cancel
+                limitdescendantsize->setValue(limitdescendantsize->property("pv").toInt());
+                return;
+            }
+        }
+        limitdescendantsize->setProperty("pv", limitdescendantsize->value());
+    });
+
     rejectbarepubkey = new QCheckBox(groupBox_Spamfiltering);
     rejectbarepubkey->setText(tr("Ignore bare/exposed public keys (pay-to-IP)"));
     rejectbarepubkey->setToolTip(tr("Spam is sometimes disguised to appear as if it is a deprecated pay-to-IP (bare pubkey) transaction, where the \"key\" is actually arbitrary data (not a real key) instead. Support for pay-to-IP was only ever supported by Satoshi's early Bitcoin wallet, which has been abandoned since 2011."));
@@ -427,11 +477,34 @@ OptionsDialog::OptionsDialog(QWidget* parent, bool enableWallet)
     verticalLayout_Spamfiltering->addWidget(rejectbaremultisig);
     FixTabOrder(rejectbaremultisig);
 
+    permitephemeral = new QValueComboBox(tabMempool);
+    permitephemeral->addItem(QString("(no exception allowed)"), QVariant("reject"));
+    permitephemeral->addItem(QString("anchor (recommended)"), QVariant("anchor,-send,-dust"));
+    permitephemeral->addItem(QString("zero-value anchor/send"), QVariant("anchor,send,-dust"));
+    permitephemeral->addItem(QString("zero-value send-only"), QVariant("-anchor,send,-dust"));
+    permitephemeral->addItem(QString("dust send"), QVariant("-anchor,send,dust"));
+    permitephemeral->addItem(QString("dust"), QVariant("anchor,send,dust"));
+    permitephemeral->addItem(QString("dust anchor"), QVariant("anchor,-send,dust"));
+    permitephemeral->setToolTip(tr("For some smart contracts, it is impractical to increase the fee after the transaction is created. For this reason, they may use zero-value \"anchors\" to chain two transactions together, the subsequent transaction simply covering the fee for both. Ordinarily, these anchors might be rejected as dust, so it may make sense to make an exception when they are sent together. Variants of this can however be abused for anti-fungibility attacks and possibly spam."));
+    CreateOptionUI(verticalLayout_Spamfiltering, permitephemeral, tr("Allow transactions to have at most one ephemeral %s output"));
+
+    rejectbareanchor = new QCheckBox(groupBox_Spamfiltering);
+    rejectbareanchor->setText(tr("Reject transactions that only have an anchor"));
+    rejectbareanchor->setToolTip(tr("Anchors are a way to allow fee-bumping smart contract transactions long after they have been created. With this option set, your node will refuse to relay or mine transactions that have only an anchor but no real sends."));
+    verticalLayout_Spamfiltering->addWidget(rejectbareanchor);
+    FixTabOrder(rejectbareanchor);
+
     maxscriptsize = new QSpinBox(groupBox_Spamfiltering);
     maxscriptsize->setMinimum(0);
     maxscriptsize->setMaximum(std::numeric_limits<int>::max());
     maxscriptsize->setToolTip(tr("There may be rare smart contracts that require a large amount of code, but more often a larger code segment is actually just spam finding new ways to try to evade filtering. 1650 bytes is sometimes considered the high end of what might be normal, usually for N-of-20 multisig."));
     CreateOptionUI(verticalLayout_Spamfiltering, maxscriptsize, tr("Ignore transactions with smart contract code larger than %s bytes."));
+
+    maxtxlegacysigops = new QSpinBox(groupBox_Spamfiltering);
+    maxtxlegacysigops->setMinimum(1);
+    maxtxlegacysigops->setMaximum(1000000);
+    maxtxlegacysigops->setToolTip(tr("Each signature operation in scripts to spend pre-segwit coins require calculations to be performed on the entire transaction. These \"legacy sigops\" can add up quickly, and there is typically only one per coin spent."));
+    CreateOptionUI(verticalLayout_Spamfiltering, maxtxlegacysigops, tr("Ignore transactions with more than %s \"legacy\" signature operations."));
 
     datacarriersize = new QSpinBox(groupBox_Spamfiltering);
     datacarriersize->setMinimum(0);
@@ -461,6 +534,12 @@ OptionsDialog::OptionsDialog(QWidget* parent, bool enableWallet)
 
     dustrelayfee = new BitcoinAmountField(groupBox_Spamfiltering);
     CreateOptionUI(verticalLayout_Spamfiltering, dustrelayfee, tr("Ignore transactions with values that would cost more to spend at a fee rate of %s per kvB (\"dust\")."));
+
+    rejectbaredatacarrier = new QCheckBox(groupBox_Spamfiltering);
+    rejectbaredatacarrier->setText(tr("Reject \"transactions\" that are only arbitrary data"));
+    rejectbaredatacarrier->setToolTip(tr("With this option set, arbitrary data will only be permitted as defined above in addition to an otherwise-valid transaction. If there are no real recipients, the transaction will be rejected no matter how little data it includes."));
+    verticalLayout_Spamfiltering->addWidget(rejectbaredatacarrier);
+    FixTabOrder(rejectbaredatacarrier);
 
 
     dustdynamic_enable = new QCheckBox(groupBox_Spamfiltering);
@@ -512,12 +591,17 @@ OptionsDialog::OptionsDialog(QWidget* parent, bool enableWallet)
 
 
     connect(rejectunknownscripts, &QAbstractButton::toggled, [this, dustdynamic_enable_toggled](const bool state){
+        rejectunknownwitness->setEnabled(state);
         rejectbarepubkey->setEnabled(state);
         rejectbaremultisig->setEnabled(state);
+        permitephemeral->setEnabled(state);
+        rejectbareanchor->setEnabled(state);
+        rejectbaredatacarrier->setEnabled(state);
         rejectparasites->setEnabled(state);
         rejecttokens->setEnabled(state);
         setSiblingsEnabled(dustrelayfee, state);
         setSiblingsEnabled(maxscriptsize, state);
+        setSiblingsEnabled(maxtxlegacysigops, state);
         setSiblingsEnabled(dustdynamic_multiplier, state);
         dustdynamic_enable_toggled(state && dustdynamic_enable->isChecked());
     });
@@ -583,7 +667,7 @@ OptionsDialog::OptionsDialog(QWidget* parent, bool enableWallet)
     }
 
 #ifdef ENABLE_EXTERNAL_SIGNER
-    ui->externalSignerPath->setToolTip(ui->externalSignerPath->toolTip().arg(PACKAGE_NAME));
+    ui->externalSignerPath->setToolTip(ui->externalSignerPath->toolTip().arg(CLIENT_NAME));
 #else
     //: "External signing" means using devices such as hardware wallets.
     ui->externalSignerPath->setToolTip(tr("Compiled without external signing support (required for external signing)"));
@@ -592,12 +676,12 @@ OptionsDialog::OptionsDialog(QWidget* parent, bool enableWallet)
     /* Display elements init */
     QDir translations(":translations");
 
-    ui->bitcoinAtStartup->setToolTip(ui->bitcoinAtStartup->toolTip().arg(PACKAGE_NAME));
-    ui->bitcoinAtStartup->setText(ui->bitcoinAtStartup->text().arg(PACKAGE_NAME));
+    ui->bitcoinAtStartup->setToolTip(ui->bitcoinAtStartup->toolTip().arg(CLIENT_NAME));
+    ui->bitcoinAtStartup->setText(ui->bitcoinAtStartup->text().arg(CLIENT_NAME));
 
-    ui->openBitcoinConfButton->setToolTip(ui->openBitcoinConfButton->toolTip().arg(PACKAGE_NAME));
+    ui->openBitcoinConfButton->setToolTip(ui->openBitcoinConfButton->toolTip().arg(CLIENT_NAME));
 
-    ui->lang->setToolTip(ui->lang->toolTip().arg(PACKAGE_NAME));
+    ui->lang->setToolTip(ui->lang->toolTip().arg(CLIENT_NAME));
     ui->lang->addItem(QString("(") + tr("default") + QString(")"), QVariant(""));
     for (const QString &langStr : translations.entryList())
     {
@@ -606,8 +690,15 @@ OptionsDialog::OptionsDialog(QWidget* parent, bool enableWallet)
         /** check if the locale name consists of 2 parts (language_country) */
         if(langStr.contains("_"))
         {
-            /** display language strings as "native language - native country (locale name)", e.g. "Deutsch - Deutschland (de)" */
-            ui->lang->addItem(locale.nativeLanguageName() + QString(" - ") + locale.nativeCountryName() + QString(" (") + langStr + QString(")"), QVariant(langStr));
+            /** display language strings as "native language - native country/territory (locale name)", e.g. "Deutsch - Deutschland (de)" */
+            ui->lang->addItem(locale.nativeLanguageName() + QString(" - ") +
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 2, 0))
+                              locale.nativeTerritoryName() +
+#else
+                              locale.nativeCountryName() +
+#endif
+                              QString(" (") + langStr + QString(")"), QVariant(langStr));
+
         }
         else
         {
@@ -652,6 +743,7 @@ OptionsDialog::OptionsDialog(QWidget* parent, bool enableWallet)
     adjustSize();
 
     GUIUtil::handleCloseWindowShortcut(this);
+    updateThemeColors();
 }
 
 OptionsDialog::~OptionsDialog()
@@ -693,6 +785,9 @@ void OptionsDialog::setModel(OptionsModel *_model)
         setFontChoice(ui->qrFont, font_for_qrcodes);
 
         updateDefaultProxyNets();
+
+        maxmempool->setProperty("pv", maxmempool->value());
+        limitdescendantsize->setProperty("pv", limitdescendantsize->value());
     }
 
     /* warn when one of the following settings changes by user action (placed here so init via mapper doesn't trigger them) */
@@ -794,6 +889,7 @@ void OptionsDialog::setMapper()
     }
 
     mapper->addMapping(blockreconstructionextratxn, OptionsModel::blockreconstructionextratxn);
+    mapper->addMapping(blockreconstructionextratxnsize, OptionsModel::blockreconstructionextratxnsize);
 
     /* Mempool tab */
 
@@ -819,10 +915,13 @@ void OptionsDialog::setMapper()
     mapper->addMapping(mempoolexpiry, OptionsModel::mempoolexpiry);
 
     mapper->addMapping(rejectunknownscripts, OptionsModel::rejectunknownscripts);
+    mapper->addMapping(rejectunknownwitness, OptionsModel::rejectunknownwitness);
     mapper->addMapping(rejectparasites, OptionsModel::rejectparasites);
     mapper->addMapping(rejecttokens, OptionsModel::rejecttokens);
     mapper->addMapping(rejectspkreuse, OptionsModel::rejectspkreuse);
     mapper->addMapping(minrelaytxfee, OptionsModel::minrelaytxfee);
+    mapper->addMapping(minrelaycoinblocks, OptionsModel::minrelaycoinblocks);
+    mapper->addMapping(minrelaymaturity, OptionsModel::minrelaymaturity);
     mapper->addMapping(bytespersigop, OptionsModel::bytespersigop);
     mapper->addMapping(bytespersigopstrict, OptionsModel::bytespersigopstrict);
     mapper->addMapping(limitancestorcount, OptionsModel::limitancestorcount);
@@ -831,11 +930,22 @@ void OptionsDialog::setMapper()
     mapper->addMapping(limitdescendantsize, OptionsModel::limitdescendantsize);
     mapper->addMapping(rejectbarepubkey, OptionsModel::rejectbarepubkey);
     mapper->addMapping(rejectbaremultisig, OptionsModel::rejectbaremultisig);
+    mapper->addMapping(rejectbareanchor, OptionsModel::rejectbareanchor);
+    mapper->addMapping(rejectbaredatacarrier, OptionsModel::rejectbaredatacarrier);
     mapper->addMapping(maxscriptsize, OptionsModel::maxscriptsize);
+    mapper->addMapping(maxtxlegacysigops, OptionsModel::maxtxlegacysigops);
     mapper->addMapping(datacarriercost, OptionsModel::datacarriercost);
     mapper->addMapping(datacarriersize, OptionsModel::datacarriersize);
     mapper->addMapping(rejectnonstddatacarrier, OptionsModel::rejectnonstddatacarrier);
     mapper->addMapping(dustrelayfee, OptionsModel::dustrelayfee);
+
+    QVariant current_permitephemeral = model->data(model->index(OptionsModel::permitephemeral, 0), Qt::EditRole);
+    int current_permitephemeral_index = permitephemeral->findData(current_permitephemeral);
+    if (current_permitephemeral_index == -1) {
+        permitephemeral->addItem(current_permitephemeral.toString(), current_permitephemeral);
+        current_permitephemeral_index = permitephemeral->count() - 1;
+    }
+    permitephemeral->setCurrentIndex(current_permitephemeral_index);
 
     QVariant current_dustdynamic = model->data(model->index(OptionsModel::dustdynamic, 0), Qt::EditRole);
     const util::Result<std::pair<int32_t, int>> parsed_dustdynamic = ParseDustDynamicOpt(current_dustdynamic.toString().toStdString(), std::numeric_limits<unsigned int>::max());
@@ -885,7 +995,10 @@ void OptionsDialog::checkLineEdit()
     if (lineedit->hasAcceptableInput()) {
         lineedit->setStyleSheet("");
     } else {
-        lineedit->setStyleSheet("color: red;");
+        // Check the line edit's actual background to choose appropriate warning color
+        const bool lineedit_dark = GUIUtil::isDarkMode(lineedit->palette().color(lineedit->backgroundRole()));
+        const QColor lineedit_warning = lineedit_dark ? QColor("#FF8080") : QColor("#FF0000");
+        lineedit->setStyleSheet(QStringLiteral("color: %1;").arg(lineedit_warning.name()));
     }
 }
 
@@ -947,7 +1060,7 @@ void OptionsDialog::on_resetButton_clicked()
         //: Window title text of pop-up window shown when the user has chosen to reset options.
         QStringList items;
         QString strPrefix = tr("Use policy defaults for %1");
-        items << strPrefix.arg(tr(PACKAGE_NAME));
+        items << strPrefix.arg(tr(CLIENT_NAME));
         items << strPrefix.arg(tr("Bitcoin Core")+" ");
 
         QInputDialog dialog(this);
@@ -1027,6 +1140,7 @@ void OptionsDialog::on_okButton_clicked()
 
     model->setData(model->index(OptionsModel::mempoolreplacement, 0), mempoolreplacement->itemData(mempoolreplacement->currentIndex()));
     model->setData(model->index(OptionsModel::mempooltruc, 0), mempooltruc->itemData(mempooltruc->currentIndex()));
+    model->setData(model->index(OptionsModel::permitephemeral, 0), permitephemeral->itemData(permitephemeral->currentIndex()));
 
     if (dustdynamic_enable->isChecked()) {
         if (dustdynamic_target->isChecked()) {
@@ -1058,6 +1172,15 @@ void OptionsDialog::on_showTrayIcon_stateChanged(int state)
     }
 }
 
+void OptionsDialog::changeEvent(QEvent* e)
+{
+    if (e->type() == QEvent::PaletteChange) {
+        updateThemeColors();
+    }
+
+    QWidget::changeEvent(e);
+}
+
 void OptionsDialog::togglePruneWarning(bool enabled)
 {
     ui->pruneWarning->setVisible(!ui->pruneWarning->isVisible());
@@ -1065,8 +1188,6 @@ void OptionsDialog::togglePruneWarning(bool enabled)
 
 void OptionsDialog::showRestartWarning(bool fPersistent)
 {
-    ui->statusLabel->setStyleSheet("QLabel { color: red; }");
-
     if(fPersistent)
     {
         ui->statusLabel->setText(tr("Client restart required to activate changes."));
@@ -1100,7 +1221,6 @@ void OptionsDialog::updateProxyValidationState()
     else
     {
         setOkButtonState(false);
-        ui->statusLabel->setStyleSheet("QLabel { color: red; }");
         ui->statusLabel->setText(tr("The supplied proxy address is invalid."));
     }
 }
@@ -1125,6 +1245,25 @@ void OptionsDialog::updateDefaultProxyNets()
 
     has_proxy = model->node().getProxy(NET_ONION, proxy);
     ui->proxyReachTor->setChecked(has_proxy && proxy.ToString() == proxyIpText);
+}
+
+void OptionsDialog::updateThemeColors()
+{
+    // Detect dark mode for color palette selection
+    const bool dark_mode = GUIUtil::isDarkMode(palette().color(backgroundRole()));
+
+    // set message warning color based on dark mode
+    const QColor warning_color = dark_mode ? QColor("#FF8080") : QColor("#FF0000");
+    ui->pruneWarning->setStyleSheet(QStringLiteral("QLabel { color: %1; }").arg(warning_color.name()));
+    ui->statusLabel->setStyleSheet(QStringLiteral("QLabel { color: %1; }").arg(warning_color.name()));
+
+    // Update networkPort line edit color if it has validation errors
+    if (!ui->networkPort->hasAcceptableInput()) {
+        // Check networkPort's actual background for appropriate warning color
+        const bool networkport_dark = GUIUtil::isDarkMode(ui->networkPort->palette().color(ui->networkPort->backgroundRole()));
+        const QColor networkport_warning = networkport_dark ? QColor("#FF8080") : QColor("#FF0000");
+        ui->networkPort->setStyleSheet(QStringLiteral("color: %1;").arg(networkport_warning.name()));
+    }
 }
 
 ProxyAddressValidator::ProxyAddressValidator(QObject *parent) :

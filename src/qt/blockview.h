@@ -6,6 +6,7 @@
 #define BITCOIN_QT_BLOCKVIEW_H
 
 #include <consensus/amount.h>
+#include <primitives/transaction.h>
 #include <sync.h>
 #include <threadsafety.h>
 #include <util/transaction_identifier.h>
@@ -15,6 +16,7 @@
 #include <memory>
 #include <vector>
 
+#include <QColor>
 #include <QDialog>
 #include <QGraphicsView>
 #include <QPointF>
@@ -22,6 +24,7 @@
 
 QT_BEGIN_NAMESPACE
 class QComboBox;
+class QEvent;
 class QGraphicsItem;
 class QGraphicsScene;
 class QLabel;
@@ -33,6 +36,7 @@ namespace node { struct CBlockTemplate; }
 class ChainstateManager;
 class ClientModel;
 class CValidationInterface;
+class GuiBlockView;
 class NetworkStyle;
 class PlatformStyle;
 
@@ -43,7 +47,11 @@ class ScalingGraphicsView : public QGraphicsView
 public:
     using QGraphicsView::QGraphicsView;
 
+    void mouseMoveEvent(QMouseEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
+    bool viewportEvent(QEvent *event) override;
+
+    GuiBlockView *m_bv;
 };
 
 class BlockViewValidationInterface;
@@ -61,6 +69,7 @@ private:
         QPointF target_loc;
     };
     struct Bubble {
+        CTransactionRef tx;
         QPointF pos;
         double radius;
         SceneElement *el;
@@ -71,6 +80,8 @@ private:
         qreal max_x{0};
         qreal min_y{0};
         bool instant;
+        size_t txs_count;
+        size_t txs_size{0};
     };
     std::map<Wtxid, SceneElement> m_elements GUARDED_BY(m_mutex);
     std::unique_ptr<BubbleGraph> m_bubblegraph GUARDED_BY(m_mutex);
@@ -81,12 +92,15 @@ private:
     QComboBox *m_block_chooser;
     QLabel *m_lbl_tx_count;
     QLabel *m_lbl_tx_fees;
+    QColor m_bubble_color;
 
     BlockViewValidationInterface *m_validation_interface;
 
     static bool any_overlap(const Bubble& proposed, const std::vector<Bubble>& others);
+    void updateThemeColors();
 
 protected:
+    void changeEvent(QEvent* e) override;
     void updateElements(bool instant) EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
     void updateBlockFees(CAmount block_fees);
 
@@ -110,11 +124,12 @@ public:
     void setClientModel(ClientModel *model);
     ChainstateManager* getChainstateManager() const;
 
-    void updateBestBlock(int height);
-
     void clear();
     void setBlock(std::shared_ptr<const CBlock> block, CAmount block_subsidy);
     void setBlock(std::shared_ptr<const node::CBlockTemplate> blocktemplate);
+
+public Q_SLOTS:
+    void updateBestBlock(int height);
 };
 
 #endif // BITCOIN_QT_BLOCKVIEW_H

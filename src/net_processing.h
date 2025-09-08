@@ -26,13 +26,18 @@ class Warnings;
 static constexpr bool DEFAULT_TXRECONCILIATION_ENABLE{false};
 /** Default for -maxorphantx, maximum number of orphan transactions kept in memory */
 static const uint32_t DEFAULT_MAX_ORPHAN_TRANSACTIONS{100};
+static constexpr size_t BLOCK_RECONSTRUCTION_EXTRA_TXN_PER_TXN_SIZE_LIMIT{100000};
+static const size_t DEFAULT_BLOCK_RECONSTRUCTION_EXTRA_TXN_SIZE{10000000};
 /** Default number of non-mempool transactions to keep around for block reconstruction. Includes
     orphan, replaced, and rejected transactions. */
-static const uint32_t DEFAULT_BLOCK_RECONSTRUCTION_EXTRA_TXN{100};
-static const bool DEFAULT_PEERBLOOMFILTERS = true;
+static const uint32_t DEFAULT_BLOCK_RECONSTRUCTION_EXTRA_TXN{32768};
+static const bool DEFAULT_PEERBLOOMFILTERS = false;
 static const bool DEFAULT_PEERBLOCKFILTERS = false;
 /** Maximum number of outstanding CMPCTBLOCK requests for the same block. */
 static const unsigned int MAX_CMPCTBLOCKS_INFLIGHT_PER_BLOCK = 3;
+/** Number of headers sent in one getheaders result. We rely on the assumption that if a peer sends
+ *  less than this number, we reached its tip. Changing this value is a protocol upgrade. */
+static const unsigned int MAX_HEADERS_RESULTS = 2000;
 
 struct CNodeStateStats {
     int nSyncHeight = -1;
@@ -48,6 +53,7 @@ struct CNodeStateStats {
     ServiceFlags their_services;
     int64_t presync_height{-1};
     std::chrono::seconds time_offset{0};
+    NodeSeconds m_last_block_announcement;
     int m_misbehavior_score{0};
 };
 
@@ -69,11 +75,15 @@ public:
         //! Number of non-mempool transactions to keep around for block reconstruction. Includes
         //! orphan, replaced, and rejected transactions.
         uint32_t max_extra_txs{DEFAULT_BLOCK_RECONSTRUCTION_EXTRA_TXN};
+        size_t max_extra_txs_size{DEFAULT_BLOCK_RECONSTRUCTION_EXTRA_TXN_SIZE};
         //! Whether all P2P messages are captured to disk
         bool capture_messages{false};
         //! Whether or not the internal RNG behaves deterministically (this is
         //! a test-only option).
         bool deterministic_rng{false};
+        //! Number of headers sent in one getheaders message result (this is
+        //! a test-only option).
+        uint32_t max_headers_result{MAX_HEADERS_RESULTS};
     };
 
     static std::unique_ptr<PeerManager> make(CConnman& connman, AddrMan& addrman,
@@ -96,7 +106,7 @@ public:
 
     /** Get statistics from node state */
     virtual bool GetNodeStateStats(NodeId nodeid, CNodeStateStats& stats) const = 0;
-    virtual void LimitOrphanTxSize(unsigned int nMaxOrphans) = 0;
+    virtual void LimitOrphanTxSize(uint32_t nMaxOrphans) = 0;
 
     virtual std::vector<TxOrphanage::OrphanTxBase> GetOrphanTransactions() = 0;
 
