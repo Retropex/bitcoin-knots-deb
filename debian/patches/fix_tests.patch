@@ -7,17 +7,17 @@ Description: The tests are designed to be run after the build and before
  detected as such by autopkgtest.
 Author: Soren Stoutner <soren@debian.org>
 Forwarded: not-needed
-Last-Update: 2025-08-26
+Last-Update: 2025-09-09
 
 --- a/test/functional/test_framework/test_framework.py
 +++ b/test/functional/test_framework/test_framework.py
-@@ -242,11 +242,7 @@ class BitcoinTestFramework(metaclass=Bit
+@@ -241,11 +241,7 @@
              "bitcoin-wallet": ("bitcoinwallet", "BITCOINWALLET"),
          }
          for binary, [attribute_name, env_variable_name] in binaries.items():
 -            default_filename = os.path.join(
 -                self.config["environment"]["BUILDDIR"],
--                "src",
+-                "bin",
 -                binary + self.config["environment"]["EXEEXT"],
 -            )
 +            default_filename = binary
@@ -26,7 +26,7 @@ Last-Update: 2025-08-26
      def setup(self):
 --- a/test/functional/test_runner.py
 +++ b/test/functional/test_runner.py
-@@ -481,7 +481,8 @@ def main():
+@@ -491,7 +491,8 @@
  
      # Set up logging
      logging_level = logging.INFO if args.quiet else logging.DEBUG
@@ -38,7 +38,7 @@ Last-Update: 2025-08-26
      tmpdir = "%s/test_runner_₿_🏃_%s" % (args.tmpdirprefix, datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
 --- a/test/util/test_runner.py
 +++ b/test/util/test_runner.py
-@@ -38,7 +38,8 @@ def main():
+@@ -38,7 +38,8 @@
          level = logging.WARNING
      formatter = '%(asctime)s - %(levelname)s - %(message)s'
      # Add the format/level to the logger

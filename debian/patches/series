@@ -1,4 +1,3 @@
 bitcoinconfdefaults.patch
 descriptive_man.patch
-git_hash.patch
 fix_tests.patch

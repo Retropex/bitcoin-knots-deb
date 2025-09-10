@@ -17,23 +17,7 @@ Comment:
  debian/tests/config.ini is a modified version of an upstream file copyrighted
  by The Bitcoin Core Developers.
 
-Files: build-aux/m4/ax_check_compile_flag.m4
-       build-aux/m4/ax_check_link_flag.m4
-       build-aux/m4/ax_check_preproc_flag.m4
-       src/minisketch/build-aux/m4/ax_check_compile_flag.m4
-       src/minisketch/build-aux/m4/ax_check_link_flag.m4
-       src/minisketch/build-aux/m4/ax_check_preproc_flag.m4
-Copyright: 2008 Guido U. Draheim <guidod@gmx.de>
-           2011 Maarten Bosmans <mkbosmans@gmail.com>
-License: FSFAP
-
-Files: build-aux/m4/ax_boost_base.m4
-Copyright: 2008 Thomas Porschberg <thomas@randspringer.de>
-           2009 Peter Adolphs
-License: FSFAP
-
-Files: build-aux/m4/ax_cxx_compile_stdcxx.m4
-       src/minisketch/build-aux/m4/ax_cxx_compile_stdcxx.m4
+Files: src/minisketch/build-aux/m4/ax_cxx_compile_stdcxx.m4
 Copyright: 2008 Benjamin Kosnik <bkoz@redhat.com>
            2012 Zack Weinberg <zackw@panix.com>
            2013 Roy Stogner <roystgnr@ices.utexas.edu>
@@ -43,10 +27,6 @@ Copyright: 2008 Benjamin Kosnik <bkoz@redhat.com>
            2016, 2018 Krzesimir Nowak <qdlacz@gmail.com>
            2019 Enji Cooper <yaneurabeya@gmail.com>
            2020 Jason Merrill <jason@redhat.com>
-License: FSFAP
-
-Files: build-aux/m4/l_atomic.m4
-Copyright: 2015 Tim Kosse <tim.kosse@filezilla-project.org>
 License: FSFAP
 
 Files: contrib/devtools/clang-format-diff.py

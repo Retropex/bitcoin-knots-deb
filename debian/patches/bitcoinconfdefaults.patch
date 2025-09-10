@@ -1,15 +1,19 @@
+Description: Custom defaults for debian package
+Author: Léo Haf <leo@haf.ovh>
+Forwarded: not-needed
+Last-Update: 2025-09-09
 --- a/share/examples/bitcoin.conf
 +++ b/share/examples/bitcoin.conf
-@@ -84,7 +84,7 @@
- #daemonwait=1
+@@ -52,7 +52,7 @@
  
- # Specify data directory
--#datadir=<dir>
+ # Specify directory to hold blocks subdirectory for *.dat files (default:
+ # <datadir>)
+-#blocksdir=<dir>
 +datadir=/var/lib/bitcoin/
  
- # Maximum database cache size <n> MiB (4 to 1048576, default: 450). In
- # addition, unused mempool memory is shared for this cache (see
-@@ -181,7 +181,7 @@
+ # Whether to reject transactions from network peers. Disables automatic
+ # broadcast and rebroadcast of transactions, unless the source peer
+@@ -186,7 +186,7 @@
  
  # Maintain a full transaction index, used by the getrawtransaction rpc
  # call (default: 0)
@@ -18,7 +22,7 @@
  
  # Print version and exit
  #version=1
-@@ -799,7 +799,7 @@
+@@ -843,7 +843,7 @@
  #rpcwhitelistdefault=1
  
  # Accept command line and JSON-RPC commands

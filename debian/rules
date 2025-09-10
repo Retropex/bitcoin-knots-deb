@@ -26,5 +26,4 @@ endif
 
 override_dh_auto_configure:
 	# muted to avoid false positives in lintian
-	dh_auto_configure > /dev/null
-
+	dh_auto_configure -- -DBUILD_GUI=ON
