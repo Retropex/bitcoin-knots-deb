@@ -2,7 +2,7 @@
 Name=Bitcoin Knots
 Comment=a graphical interface for interacting with Bitcoin Knots
 Exec=/usr/bin/bitcoin-qt
-Icon=/usr/share/bitcoin/bitcoin1024.png
+Icon=/usr/share/bitcoin/bitcoin256.png
 Terminal=false
 Type=Application
 Categories=Finance;Network;

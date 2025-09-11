@@ -22,7 +22,7 @@ else
 endif
 
 %:
-	dh $@
+	dh $@ --builddirectory=build
 
 override_dh_auto_configure:
 	# muted to avoid false positives in lintian
