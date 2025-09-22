@@ -1,3 +1,6 @@
 # Remove the generated test log.
 src/test/stats_tests.log
 share/rpcauth/__pycache__/
+test/functional/test_framework/__pycache__/
+test/functional/test_framework/crypto/__pycache__/
+test/functional/data/__pycache__/
