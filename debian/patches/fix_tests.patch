@@ -6,6 +6,7 @@ Description: The tests are designed to be run after the build and before
  logs the test output to stdout instead of stderr.  Actual errors are still
  detected as such by autopkgtest.
 Author: Soren Stoutner <soren@debian.org>
+        Léo Haf <leo@haf.ovh>
 Forwarded: not-needed
 Last-Update: 2025-09-09
 
@@ -38,7 +39,18 @@ Last-Update: 2025-09-09
      tmpdir = "%s/test_runner_₿_🏃_%s" % (args.tmpdirprefix, datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
 --- a/test/util/test_runner.py
 +++ b/test/util/test_runner.py
-@@ -38,7 +38,8 @@
+@@ -29,8 +29,10 @@
+ 
+     parser = argparse.ArgumentParser(description=__doc__)
+     parser.add_argument('-v', '--verbose', action='store_true')
++    parser.add_argument('-a', '--autopkgtest', action='store_true')
+     args = parser.parse_args()
+     verbose = args.verbose
++    autopkgtest = args.autopkgtest
+ 
+     if verbose:
+         level = logging.DEBUG
+@@ -38,11 +40,12 @@
          level = logging.WARNING
      formatter = '%(asctime)s - %(levelname)s - %(message)s'
      # Add the format/level to the logger
@@ -46,5 +58,49 @@ Last-Update: 2025-09-09
 +    # Log to stdout instead of stderr.  Otherwise, the successful test output is interpreted as an error by autopkgtest.
 +    logging.basicConfig(stream=sys.stdout, format=formatter, level=level)
  
-     bctester(os.path.join(env_conf["SRCDIR"], "test", "util", "data"), "bitcoin-util-test.json", env_conf, config['components'])
+-    bctester(os.path.join(env_conf["SRCDIR"], "test", "util", "data"), "bitcoin-util-test.json", env_conf, config['components'])
++    bctester(os.path.join(env_conf["SRCDIR"], "test", "util", "data"), "bitcoin-util-test.json", env_conf, config['components'], autopkgtest)
  
+-def bctester(testDir, input_basename, buildenv, component_conf):
++def bctester(testDir, input_basename, buildenv, component_conf, autopkgtest):
+     """ Loads and parses the input file, runs all tests and reports results"""
+     input_filename = os.path.join(testDir, input_basename)
+     with open(input_filename, encoding="utf8") as f:
+@@ -62,7 +65,7 @@
+             continue
+ 
+         try:
+-            bctest(testDir, testObj, buildenv)
++            bctest(testDir, testObj, buildenv, autopkgtest)
+             logging.info("PASSED: " + testObj["description"])
+         except Exception:
+             logging.info("FAILED: " + testObj["description"])
+@@ -78,7 +81,7 @@
+             logging.warning(f'{len(skipped_testcases)} tests skipped because {skipped_testcase_deps} is not built')
+         sys.exit(0)
+ 
+-def bctest(testDir, testObj, buildenv):
++def bctest(testDir, testObj, buildenv, autopkgtest):
+     """Runs a single test, comparing output and RC to expected output and RC.
+ 
+     Raises an error if input can't be read, executable fails, or output/RC
+@@ -87,9 +90,17 @@
+     # Get the exec names and arguments
+     execprog = os.path.join(buildenv["BUILDDIR"], "bin", testObj["exec"] + buildenv["EXEEXT"])
+     if testObj["exec"] == "./bitcoin-util":
+-        execprog = os.getenv("BITCOINUTIL", default=execprog)
++        if autopkgtest:
++            # In autopkgtest, the binary is installed system-wide
++            execprog = "bitcoin-util"
++        else:
++            execprog = os.getenv("BITCOINUTIL", default=execprog)
+     elif testObj["exec"] == "./bitcoin-tx":
+-        execprog = os.getenv("BITCOINTX", default=execprog)
++        if autopkgtest:
++            # In autopkgtest, the binary is installed system-wide
++            execprog = "bitcoin-tx"
++        else:
++            execprog = os.getenv("BITCOINTX", default=execprog)
+ 
+     execargs = testObj['args']
+     execrun = [execprog] + execargs

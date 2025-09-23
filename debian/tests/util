@@ -11,4 +11,4 @@ cp /usr/bin/bitcoin-util src/
 cp /usr/bin/bitcoin-tx src/
 
 # Run the util tests.
-test/util/test_runner.py -v
+test/util/test_runner.py -v -a
