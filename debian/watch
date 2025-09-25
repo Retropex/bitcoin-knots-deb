@@ -1,2 +1,4 @@
-version=4
-https://github.com/bitcoinknots/bitcoin/tags .*/v?(\d.*)@ARCHIVE_EXT@
+Version: 5
+
+Source: https://github.com/bitcoinknots/bitcoin/tags
+Matching-Pattern: .*/v?(\d.*)@ARCHIVE_EXT@
