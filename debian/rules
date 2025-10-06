@@ -25,5 +25,10 @@ endif
 	dh $@ --builddirectory=build
 
 override_dh_auto_configure:
-	# muted to avoid false positives in lintian
+	# Build the GUI.
 	dh_auto_configure -- -DBUILD_GUI=ON
+
+# Write the content of build/test/config.ini to the log, which can be used to update
+# debian/tests/config.ini.
+execute_after_dh_auto_build:
+	cat build/test/config.ini
