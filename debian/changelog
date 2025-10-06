@@ -1,11 +1,5 @@
 bitcoin-knots (29.1.knots20250903-1) unstable; urgency=medium
 
-  * Update to v29.1.knots20250903
-
- -- Léo Haf <leo@haf.ovh>  Mon, 08 Sep 2025 11:58:27 +0200
-
-bitcoin-knots (28.1.knots20250305-1) unstable; urgency=medium
-
   * Initial release. Closes: #1106648
 
- -- Léo Haf <leo@haf.ovh>  Fri, 30 May 2025 12:23:05 +0200
+ -- Léo Haf <leo@haf.ovh>  Mon, 08 Sep 2025 11:58:27 +0200
