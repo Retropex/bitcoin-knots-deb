@@ -38,7 +38,7 @@ License: FSFAP
 
 Files: contrib/devtools/clang-format-diff.py
 Copyright: LLVM Project
-License: Apache-2.0 with LLVM exception
+License: Apache-2.0~with-LLVM-exception
 
 Files: src/test/fuzz/FuzzedDataProvider.h
 Copyright: LLVM Project
@@ -115,7 +115,7 @@ License:   Expat
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.
 
-License: Apache-2.0 with LLVM exception
+License: Apache-2.0~with-LLVM-exception
  TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
  .
  1. Definitions.
