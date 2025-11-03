@@ -32,7 +32,7 @@ Depends: ${misc:Depends},
  ${shlibs:Depends},
  adduser
 Description: enhanced Bitcoin node/wallet software
- Bitcoin Knots is the original Bitcoin client and it builds the
+ Bitcoin Knots is a Bitcoin client and it builds the
  backbone of the network.
  It downloads and, by default, stores the entire history of
  Bitcoin transactions, which requires a few hundred gigabytes of disk space.
@@ -45,7 +45,7 @@ Architecture: any
 Depends: ${misc:Depends},
  ${shlibs:Depends}
 Description: enhanced Bitcoin node/wallet software with GUI
- Bitcoin Knots (with GUI) is the original Bitcoin client and it builds the
+ Bitcoin Knots (with GUI) is a Bitcoin client and it builds the
  backbone of the network.
  It downloads and, by default, stores the entire history of
  Bitcoin transactions, which requires a few hundred gigabytes of disk space.
