@@ -1,8 +1,8 @@
-Bitcoin Knots version 29.2.knots20251010 is now available from:
+Bitcoin Knots version 29.2.knots20251110 is now available from:
 
-  <https://bitcoinknots.org/files/29.x/29.2.knots20251010/>
+  <https://bitcoinknots.org/files/29.x/29.2.knots20251110/>
 
-This release includes various bug fixes and a new Dockerfile.
+This release includes default configuration changes and various bug fixes.
 
 Please report bugs using the issue tracker at GitHub:
 
@@ -48,128 +48,69 @@ to do so until/unless that is resolved.
 Notable changes
 ===============
 
-A new Dockerfile has been added to the source code release, under the
-`contrib/docker` directory. Please read [the documentation](https://github.com/bitcoinknots/bitcoin/blob/29.x-knots/contrib/docker/README.md) for details.
+- The low severity service degradation vulnerability CVE-2025-46598 has been
+  fixed.
+
+- The default policy for datacarriersize has been increased to allow 83 bytes.
+  While not ideal, some legacy protocols still rely on 83-byte datacarrier
+  outputs, and it is undesirable to risk breaking those as Knots adoption
+  grows. This is expected to be a temporary adjustment until these older
+  applications can be updated to not require extra data, and will be reverted
+  back to 42 in a future version. Users with a preference are encouraged to
+  explicitly set it themselves.
+
+- Memory pressure detection is no longer enabled by default. It has been found
+  to misbehave in some configurations. If you wish to re-enable it, you can do
+  so with the `-lowmem=<n>` configuration option.
 
 ### Consensus
 
-- #33334 node: optimize CBlockIndexWorkComparator
+- #32473 Introduce per-txin sighash midstate cache for legacy/p2sh/segwitv0 scripts
+
+### Policy
+
+- Default policy: Increase datacarriersize to 83 bytes
 
 ### P2P and network changes
 
-- #7219 Discontinue advertising NODE_REPLACE_BY_FEE service bit
-- #15421 Bugfix: torcontrol: Use ephemeral config file rather than stdin
-- #32646 p2p: Add witness mutation check inside FillBlock
-- #33296 net: check for empty header before calling FillBlock
-- #33311 net: Quiet down logging when router doesn't support natpmp/pcp
-- #33338 net: Add interrupt to pcp retry loop
-- #33395 net: do not apply whitelist permissions to onion inbounds
-- #33464 p2p: Use network-dependent timers for inbound inv scheduling
-- knots#187 add Léo Haf DNS seed
-- Bugfix: torcontrol: Map bind-any to loopback address
-- Bugfix: net: Treat connections to the first normal bind as Tor when appropriate
+- #33050 net, validation: don't punish peers for consensus-invalid txs
+- #33105 validation: detect witness stripping without re-running Script checks
+- #33738 log,blocks: avoid `GetHash()` work when logging is disabled
+- #33813 Changing the rpcbind argument being ignored to a pop up warning, instead of a debug log
 
 ### GUI
 
-- gui#886 Avoid pathological QT text/markdown behavior...
-- knots#203 add migratewallet rpc in historyFilter
-- icon: Render macOS icns as a macOS-style icon
+- #8501 GUI: MempoolStats: Use min relay fee when mempool has none
+- gui#901 qt: add createwallet and createwalletdescriptor to history filter
 
 ### Wallet
 
-- knots#205 Bugfix: Wallet: Migration: Adapt sanity checks for walletimplicitsegwit=0
-
-### RPC
-
-- #31785 Have createNewBlock() wait for tip, make rpc handle shutdown during long poll and wait methods
-- #33446 rpc: fix getblock(header) returns target for tip
-- #33475 bugfix: miner: fix addPackageTxs unsigned integer overflow
-- #33484 doc: rpc: fix case typo in finalizepsbt help (final_scriptwitness)
-- knots#190 Add zsh completion script generation support
-- Interpret ignore_rejects=truc to ignore all TRUC policies
+- #31514 bugfix: disallow label for ranged descriptors & allow external non-ranged descriptors to have label
 
 ### Block and transaction handling
 
-- #31144 \[IBD\] multi-byte block obfuscation
-- #31845 Bugfix: Correctly handle pruneduringinit=0 by treating it as manual-prune until sync completes
-
-### Index
-
-- #33410 coinstats: avoid unnecessary Coin copy in ApplyHash
+- #19873 mempressure: Disable by default for now
 
 ### Test
 
-- #33433 Bugfix: QA: rpc_bind: Skip nonloopback test if no such address is found
-
-### Mempool
-
-- #33504 mempool: Do not enforce TRUC checks on reorg
-
-### RPC
-
-- #33446 rpc: fix getblock(header) returns target for tip
+- #33698 test: Use same rpc timeout for authproxy and cli
 
 ### CI
 
-- #32989 ci: Migrate CI to GitHub Actions
-- #32999 ci: Use APT_LLVM_V in msan task
-- #33099 ci: allow for any libc++ intrumentation & use it for TSAN
-- #33258 ci: use LLVM 21
-- #33303 ci: Checkout latest merged pulls
-- #33319 ci: reduce runner sizes on various jobs
-- #33364 ci: always use tag for LLVM checkout
-- #33425 ci: remove Clang build from msan fuzz job
-
-### Doc
-
-- #33484 doc: rpc: fix case typo in `finalizepsbt` help
-
-### Misc
-
-- #33310 trace: Workaround GCC bug compiling with old systemtap
-- #33332 common: Make arith_uint256 trivially copyable
-- #33340 Fix benchmark CSV output
-- #33422 build: Remove lingering Windows registry & shortcuts
-- #33482 contrib: fix macOS deployment with no translations
-- #33494 depends: Update URL for qrencode package source tarball
-- #33504 Mempool: Do not enforce TRUC checks on reorg
-- #33511 init: Fix Ctrl-C shutdown hangs during wait calls
-- #33580 depends: Use $(package)_file_name when downloading from the fallback
-- knots#171 Add Dockerfile
-- knots#192 depends: fetch miniupnpc sources from github releases
-- guix: Rename win64*-unsigned to win64*-pgpverifiable
+- #33639 ci: Only write docker build images to Cirrus cache
 
 Credits
 =======
 
 Thanks to everyone who directly contributed to this release:
 
+- Ataraxia
 - /dev/fd0
-- Amisha Chhajed
-- Ava Chow
-- Claudio Raimondi
-- David Gumberg
-- Eugene Siegel
-- Fabian Jahr
-- fanquake
-- glozow
-- Greg Sanders
-- Hennadii Stepanov
-- Hodlinator
-- ismaelsadeeq
-- laanwj
-- Léo Haf
+- Anthony Towns
+- Antoine Poinsot
 - Lőrinc
 - Luke Dashjr
-- Marcel Stampfer
 - MarcoFalke
-- Martin Zumsande
-- Max Edwards
-- Ryan Ofsky
-- sashass1315
-- Sebastian Falbesoner
-- Sjors Provoost
-- TheCharlatan
-- Trevor Arjeski
-- Vasil Dimov
-- Will Clark
+- Pieter Wuille
+- scgbckbone
+- WakeTrainDev

@@ -92,6 +92,9 @@ namespace {
 
 // don't add private key handling cmd's to the history
 const QStringList historyFilter = QStringList()
+    << "createwallet"
+    << "createwalletdescriptor"
+    << "migratewallet"
     << "importprivkey"
     << "importmulti"
     << "sethdseed"
@@ -100,8 +103,7 @@ const QStringList historyFilter = QStringList()
     << "sweepprivkeys"
     << "walletpassphrase"
     << "walletpassphrasechange"
-    << "encryptwallet"
-    << "migratewallet";
+    << "encryptwallet";
 
 }
 
