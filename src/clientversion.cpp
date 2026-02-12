@@ -31,7 +31,7 @@ const std::string UA_NAME("Satoshi");
 //   - "// No build information available", if proper git information is not available
 
 //! git will put "#define GIT_COMMIT_ID ..." on the next line inside archives. 
-#define GIT_COMMIT_ID "7b009f5531b9641f3fe5456f668638c5ddd5929a"
+#define GIT_COMMIT_ID "a9aee730466ac67d35a3c03ee24676be5e045878"
 
 #ifdef BUILD_GIT_TAG
     #define BUILD_DESC BUILD_GIT_TAG
