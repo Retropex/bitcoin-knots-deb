@@ -1,3 +1,9 @@
+bitcoin-knots (29.3.knots20260210-1) unstable; urgency=medium
+
+  * New upstream version v29.3.0.knots20260210
+
+ -- Léo Haf <leo@haf.ovh>  Thu, 12 Feb 2026 15:44:35 +0000
+
 bitcoin-knots (29.2.knots20251110-1) unstable; urgency=medium
 
   * New upstream version v29.2.knots20251110
