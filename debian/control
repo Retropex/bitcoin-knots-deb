@@ -1,6 +1,5 @@
 Source: bitcoin-knots
 Section: utils
-Priority: optional
 Maintainer: Debian Cryptocoin Team <team+cryptocoin@tracker.debian.org>
 Uploaders: Léo Haf <leo@haf.ovh>,
            Soren Stoutner <soren@debian.org>
@@ -20,7 +19,7 @@ Build-Depends: debhelper-compat (= 13),
  librsvg2-bin,
  imagemagick,
  libqrencode-dev
-Standards-Version: 4.7.2
+Standards-Version: 4.7.3
 Homepage: https://bitcoinknots.org
 Vcs-Git: https://salsa.debian.org/cryptocoin-team/bitcoin-knots.git
 Vcs-Browser: https://salsa.debian.org/cryptocoin-team/bitcoin-knots
