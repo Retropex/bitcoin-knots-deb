@@ -1,4 +1,6 @@
 Tests: functional
+# Explicitly omit RISC-V because CI is too slow, causing the tests to fail.
+Architecture: amd64 arm64 i386 ppc64el s390x
 Depends: @,
          python3-zmq
 Restrictions: needs-root
