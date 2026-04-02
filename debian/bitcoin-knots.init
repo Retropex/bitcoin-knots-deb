@@ -1,0 +1,75 @@
+#! /bin/sh
+
+### BEGIN INIT INFO
+# Provides:             bitcoin-knots
+# Required-Start:       $remote_fs $syslog
+# Required-Stop:        $remote_fs $syslog
+# Default-Start:        2 3 4 5
+# Default-Stop:         0 1 6
+# Short-Description:    bitcoind deamon
+### END INIT INFO
+
+set -e
+
+USER="bitcoin"
+CONFFILE="/etc/bitcoin/bitcoin.conf"
+BINPATH="/usr/bin/bitcoind"
+PIDFILE="/var/lib/bitcoin/bitcoind.pid"
+
+. /lib/lsb/init-functions
+
+if ! test -f $BINPATH; then
+    echo "bitcoind missing!"
+fi
+
+if ! test -f $CONFFILE; then
+    echo "bitcoin.conf file missing!"
+fi
+
+if ! test -d /var/lib/bitcoin; then
+    echo "bitcoind data directory is missing!"
+fi
+
+start() {
+        log_daemon_msg "Starting Bitcoin Knots" "bitcoind" || true
+        if start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $BINPATH --chuid $USER -- -conf=$CONFFILE -daemon >/dev/null 2>&1; then
+            log_end_msg 0 || true
+        else
+            log_end_msg 1 || true
+        fi
+}
+
+stop() {
+        log_daemon_msg "Stoping Bitcoin Knots" "bitcoind" || true
+        if start-stop-daemon --stop --quiet --pidfile $PIDFILE --chuid $USER --exec $BINPATH; then
+            log_end_msg 0 || true
+        else
+            log_end_msg 1 || true
+        fi
+}
+
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  status)
+        status_of_proc -p $PIDFILE $BINPATH bitcoind
+        ;;
+  restart|force-reload)
+        log_daemon_msg "Stoping Bitcoin Knots" "bitcoind" || true
+        if start-stop-daemon --stop --quiet --pidfile $PIDFILE --chuid $USER --retry 300 --exec $BINPATH; then
+            log_end_msg 0 || true
+        else
+            log_end_msg 1 || true
+        fi
+        start
+        ;;
+  *)
+        echo $"Usage: $0 {start|stop|restart|force-reload|status}"
+        exit 1
+esac
+
+exit 0
