@@ -2,8 +2,8 @@
 
 ### BEGIN INIT INFO
 # Provides:             bitcoin-knots
-# Required-Start:       $remote_fs $syslog
-# Required-Stop:        $remote_fs $syslog
+# Required-Start:       $local_fs $remote_fs $network $syslog $named
+# Required-Stop:        $local_fs $remote_fs $network $syslog $named
 # Default-Start:        2 3 4 5
 # Default-Stop:         0 1 6
 # Short-Description:    bitcoind deamon
@@ -20,14 +20,17 @@ PIDFILE="/var/lib/bitcoin/bitcoind.pid"
 
 if ! test -f $BINPATH; then
     echo "bitcoind missing!"
+    exit 1
 fi
 
 if ! test -f $CONFFILE; then
     echo "bitcoin.conf file missing!"
+    exit 1
 fi
 
 if ! test -d /var/lib/bitcoin; then
     echo "bitcoind data directory is missing!"
+    exit 1
 fi
 
 start() {
@@ -40,7 +43,7 @@ start() {
 }
 
 stop() {
-        log_daemon_msg "Stoping Bitcoin Knots" "bitcoind" || true
+        log_daemon_msg "Stopping Bitcoin Knots" "bitcoind" || true
         if start-stop-daemon --stop --quiet --pidfile $PIDFILE --chuid $USER --exec $BINPATH; then
             log_end_msg 0 || true
         else
@@ -59,7 +62,7 @@ case "$1" in
         status_of_proc -p $PIDFILE $BINPATH bitcoind
         ;;
   restart|force-reload)
-        log_daemon_msg "Stoping Bitcoin Knots" "bitcoind" || true
+        log_daemon_msg "Stopping Bitcoin Knots" "bitcoind" || true
         if start-stop-daemon --stop --quiet --pidfile $PIDFILE --chuid $USER --retry 300 --exec $BINPATH; then
             log_end_msg 0 || true
         else
