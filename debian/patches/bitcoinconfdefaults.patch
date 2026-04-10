@@ -1,7 +1,7 @@
 Description: Custom defaults for debian package
 Author: Léo Haf <leo@haf.ovh>
 Forwarded: not-needed
-Last-Update: 2025-09-09
+Last-Update: 2026-04-10
 --- a/share/examples/bitcoin.conf
 +++ b/share/examples/bitcoin.conf
 @@ -52,7 +52,7 @@
@@ -13,15 +13,6 @@ Last-Update: 2025-09-09
  
  # Whether to reject transactions from network peers. Disables automatic
  # broadcast and rebroadcast of transactions, unless the source peer
-@@ -186,7 +186,7 @@
- 
- # Maintain a full transaction index, used by the getrawtransaction rpc
- # call (default: 0)
--#txindex=1
-+txindex=1
- 
- # Print version and exit
- #version=1
 @@ -843,7 +843,7 @@
  #rpcwhitelistdefault=1
  
