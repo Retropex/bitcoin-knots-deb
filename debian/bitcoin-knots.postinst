@@ -4,6 +4,9 @@ set -e
 
 USER="bitcoin"
 
+# Source debconf library
+. /usr/share/debconf/confmodule
+
 case "$1" in
   configure|reconfigure)
   
@@ -16,7 +19,7 @@ case "$1" in
   fi
 
   # Add the /etc/bitcoin/bitcoin.conf stat override if it doesn't already exist.
-  if ! dpkg-statoverride --list /var/lib/bitcoin >/dev/null 2>&1; then
+  if ! dpkg-statoverride --list /etc/bitcoin/bitcoin.conf >/dev/null 2>&1; then
     dpkg-statoverride --update --add bitcoin bitcoin 0640 /etc/bitcoin/bitcoin.conf
   fi
   
@@ -24,6 +27,41 @@ case "$1" in
   if ! dpkg-statoverride --list /var/lib/bitcoin >/dev/null 2>&1; then
     dpkg-statoverride --update --add bitcoin bitcoin 0755 /var/lib/bitcoin
   fi
+  
+  if [ -f /etc/bitcoin/bitcoin.conf ]; then
+    db_get bitcoin-knots/prune-bool || RET=
+    if [ "$RET" = "true" ]; then
+      while true; do
+        unset RET
+        db_get bitcoin-knots/prune || RET=
+        if echo "$RET" | grep -sqE '^[0-9]+$' && [ "$RET" -eq 0 ] || [ "$RET" -eq 1 ] || [ "$RET" -ge 550 ]; then
+          break
+        fi
+        db_input high bitcoin-knots/prune-fail || true
+        db_go || true
+        db_input high bitcoin-knots/prune || true
+        db_go || true
+      done
+      
+      if [ "$RET" ]; then
+        if grep -s -q -E '^#?prune=' /etc/bitcoin/bitcoin.conf; then
+          sed -i -E "/^#?prune=/c\prune=$RET" /etc/bitcoin/bitcoin.conf
+        else
+          db_input high bitcoin-knots/prune-bool-fail || true
+          db_go || true
+        fi
+      fi
+    elif [ "$RET" = "false" ]; then
+      if grep -s -q -E '^#?prune=' /etc/bitcoin/bitcoin.conf; then
+        sed -i -E "/^#?prune=/c\prune=0" /etc/bitcoin/bitcoin.conf
+      else
+        db_input high bitcoin-knots/prune-bool-fail || true
+        db_go || true
+      fi
+    fi
+  fi
+  
+  db_stop
   ;;
 esac
 

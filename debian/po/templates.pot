@@ -1,0 +1,72 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the bitcoin-knots package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: bitcoin-knots\n"
+"Report-Msgid-Bugs-To: bitcoin-knots@packages.debian.org\n"
+"POT-Creation-Date: 2026-04-13 16:19+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: boolean
+#. Description
+#: ../bitcoin-knots.templates:1001
+msgid "Do you want to enable pruning?"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../bitcoin-knots.templates:1001
+msgid ""
+"Save storage space by pruning (deleting) old blocks  and keeping only a "
+"limited copy of the blockchain."
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:2001
+msgid "Value for pruning (must be at least 550 or 0/1) in MiB:"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:2001
+msgid ""
+"0 = disabled, 1 = allow manual pruning via RPC,  >=550 = automatically prune "
+"block files to stay under the target size in MiB"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:3001
+msgid "Couldn't configure prune"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:3001
+msgid ""
+"Couldn't configure the prune setting as expected,  please set your value "
+"manually in /etc/bitcoin/bitcoin.conf"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:4001
+msgid "Bad value for prune"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:4001
+msgid "Prune must be O, 1 or superior or equal to 550"
+msgstr ""
