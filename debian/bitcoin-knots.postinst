@@ -39,7 +39,7 @@ case "$1" in
         fi
         db_input high bitcoin-knots/prune-fail || true
         db_go || true
-        db_input high bitcoin-knots/prune || true
+        db_input medium bitcoin-knots/prune || true
         db_go || true
       done
       
