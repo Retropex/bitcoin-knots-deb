@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bitcoin-knots\n"
 "Report-Msgid-Bugs-To: bitcoin-knots@packages.debian.org\n"
-"POT-Creation-Date: 2026-04-14 13:57+0200\n"
+"POT-Creation-Date: 2026-04-14 15:46+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Léo Haf <leo@haf.ovh>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -103,5 +103,52 @@ msgid ""
 "Couldn't configure the txindex setting as expected,  please set your value "
 "manually in /etc/bitcoin/bitcoin.conf"
 msgstr ""
-"Impossible de configurer le paramètre txindex comme prévu.  Veuillez "
-"définir manuellement la valeur dans /etc/bitcoin/bitcoin.conf"
+"Impossible de configurer le paramètre txindex comme prévu.  Veuillez définir "
+"manuellement la valeur dans /etc/bitcoin/bitcoin.conf"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:7001
+msgid "Value for dbcache (must be at least 4) in MiB:"
+msgstr "Valeur de dbcache (doit être au moins de 4) en Mio :"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:7001
+msgid ""
+"A larger cache can speed up the initial synchronization of your Bitcoin "
+"node,   but after the initial sync is complete, a larger cache value does "
+"not  significantly improve performance and may use more RAM than needed."
+msgstr ""
+"Un cache plus important peut accélérer la synchronisation initiale de votre "
+"nœud Bitcoin, mais une fois la synchronisation initiale terminée, une valeur "
+"de cache plus importante n'améliore pas significativement les performances "
+"et peut utiliser plus de RAM que nécessaire."
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:8001
+msgid "Couldn't configure dbcache"
+msgstr "Impossible de configurer dbcache"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:8001
+msgid ""
+"Couldn't configure the dbcache setting as expected,  please set your value "
+"manually in /etc/bitcoin/bitcoin.conf"
+msgstr ""
+"Impossible de configurer le paramètre dbcache comme prévu.  Veuillez définir "
+"manuellement la valeur dans /etc/bitcoin/bitcoin.conf"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:9001
+msgid "Bad value for dbcache"
+msgstr "Mauvaise valeur pour dbcache"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:9001
+msgid "dbcache must be superior or equal to 4"
+msgstr "dbcache doit être supérieur ou égale à 4"

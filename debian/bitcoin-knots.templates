@@ -33,3 +33,21 @@ Type: note
 _Description: Couldn't configure txindex
  Couldn't configure the txindex setting as expected, 
  please set your value manually in /etc/bitcoin/bitcoin.conf
+
+Template: bitcoin-knots/dbcache
+Type: string
+_Description: Value for dbcache (must be at least 4) in MiB:
+ A larger cache can speed up the initial synchronization of your Bitcoin node,  
+ but after the initial sync is complete, a larger cache value does not 
+ significantly improve performance and may use more RAM than needed.
+
+Template: bitcoin-knots/dbcache-fail
+Type: note
+_Description: Couldn't configure dbcache
+ Couldn't configure the dbcache setting as expected, 
+ please set your value manually in /etc/bitcoin/bitcoin.conf
+
+Template: bitcoin-knots/dbcache-wrong
+Type: note
+_Description: Bad value for dbcache
+ dbcache must be superior or equal to 4

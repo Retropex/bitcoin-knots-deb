@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bitcoin-knots\n"
 "Report-Msgid-Bugs-To: bitcoin-knots@packages.debian.org\n"
-"POT-Creation-Date: 2026-04-14 13:57+0200\n"
+"POT-Creation-Date: 2026-04-14 15:46+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -95,4 +95,45 @@ msgstr ""
 msgid ""
 "Couldn't configure the txindex setting as expected,  please set your value "
 "manually in /etc/bitcoin/bitcoin.conf"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:7001
+msgid "Value for dbcache (must be at least 4) in MiB:"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:7001
+msgid ""
+"A larger cache can speed up the initial synchronization of your Bitcoin "
+"node,   but after the initial sync is complete, a larger cache value does "
+"not  significantly improve performance and may use more RAM than needed."
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:8001
+msgid "Couldn't configure dbcache"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:8001
+msgid ""
+"Couldn't configure the dbcache setting as expected,  please set your value "
+"manually in /etc/bitcoin/bitcoin.conf"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:9001
+msgid "Bad value for dbcache"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:9001
+msgid "dbcache must be superior or equal to 4"
 msgstr ""

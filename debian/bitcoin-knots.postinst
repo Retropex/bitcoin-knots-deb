@@ -80,6 +80,28 @@ case "$1" in
         fi
       fi
     fi
+    unset RET
+    
+    db_get bitcoin-knots/dbcache || RET=
+    if [ "$RET" ]; then
+      while true; do
+        if echo "$RET" | grep -sqE '^[0-9]+$' && [ "$RET" -ge 4 ]; then
+          break
+        fi
+        db_input high bitcoin-knots/dbcache-wrong || true
+        db_go || true
+        db_input medium bitcoin-knots/dbcache || true
+        db_go || true
+        db_get bitcoin-knots/dbcache || RET=
+      done
+      
+      if grep -s -q -E '^#?dbcache=' /etc/bitcoin/bitcoin.conf; then
+        sed -i -E "/^#?dbcache=/c\dbcache=$RET" /etc/bitcoin/bitcoin.conf
+      else
+        db_input high bitcoin-knots/dbcache-fail || true
+        db_go || true
+      fi
+    fi
   fi
   unset RET
   
