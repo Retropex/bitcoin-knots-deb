@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bitcoin-knots\n"
 "Report-Msgid-Bugs-To: bitcoin-knots@packages.debian.org\n"
-"POT-Creation-Date: 2026-04-14 16:59+0200\n"
+"POT-Creation-Date: 2026-04-14 17:33+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -136,4 +136,18 @@ msgstr ""
 #. Description
 #: ../bitcoin-knots.templates:9001
 msgid "dbcache must be superior or equal to 4"
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:10001
+msgid "bitcoin.conf file missing, unable to interactively configure bitcoind"
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:10001
+msgid ""
+"the file /var/lib/bitcoin.conf is missing, debconf expect this file to  "
+"interactively configure bitcoind."
 msgstr ""

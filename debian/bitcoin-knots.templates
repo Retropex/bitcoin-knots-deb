@@ -51,3 +51,9 @@ Template: bitcoin-knots/dbcache-wrong
 Type: note
 _Description: Bad value for dbcache
  dbcache must be superior or equal to 4
+
+Template: bitcoin-knots/bitcoinconf
+Type: error
+_Description: bitcoin.conf file missing, unable to interactively configure bitcoind
+ the file /var/lib/bitcoin.conf is missing, debconf expect this file to 
+ interactively configure bitcoind.
