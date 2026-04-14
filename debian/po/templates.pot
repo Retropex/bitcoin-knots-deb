@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bitcoin-knots\n"
 "Report-Msgid-Bugs-To: bitcoin-knots@packages.debian.org\n"
-"POT-Creation-Date: 2026-04-13 16:19+0200\n"
+"POT-Creation-Date: 2026-04-14 13:57+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -69,4 +69,30 @@ msgstr ""
 #. Description
 #: ../bitcoin-knots.templates:4001
 msgid "Prune must be O, 1 or superior or equal to 550"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../bitcoin-knots.templates:5001
+msgid "Do you want to enable transaction index?"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../bitcoin-knots.templates:5001
+msgid "This is required for electrum servers and various other software"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:6001
+msgid "Couldn't configure txindex"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:6001
+msgid ""
+"Couldn't configure the txindex setting as expected,  please set your value "
+"manually in /etc/bitcoin/bitcoin.conf"
 msgstr ""

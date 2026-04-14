@@ -1,5 +1,6 @@
 Template: bitcoin-knots/prune-bool
 Type: boolean
+Default: false
 _Description: Do you want to enable pruning?
  Save storage space by pruning (deleting) old blocks 
  and keeping only a limited copy of the blockchain.
@@ -20,3 +21,15 @@ Template: bitcoin-knots/prune-fail
 Type: note
 _Description: Bad value for prune
  Prune must be O, 1 or superior or equal to 550
+
+Template: bitcoin-knots/txindex
+Type: boolean
+Default: false
+_Description: Do you want to enable transaction index?
+ This is required for electrum servers and various other software
+
+Template: bitcoin-knots/txindex-fail
+Type: note
+_Description: Couldn't configure txindex
+ Couldn't configure the txindex setting as expected, 
+ please set your value manually in /etc/bitcoin/bitcoin.conf

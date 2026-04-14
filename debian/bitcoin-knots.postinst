@@ -59,7 +59,29 @@ case "$1" in
         db_go || true
       fi
     fi
+    unset RET
+    
+    db_get bitcoin-knots/prune-bool || RET=
+    if [ "$RET" = "false" ]; then
+      db_get bitcoin-knots/txindex || RET=
+      if [ "$RET" = "true" ]; then
+        if grep -s -q -E '^#?txindex=' /etc/bitcoin/bitcoin.conf; then
+          sed -i -E "/^#?txindex=/c\txindex=1" /etc/bitcoin/bitcoin.conf
+        else
+          db_input high bitcoin-knots/txindex-fail || true
+          db_go || true
+        fi
+      elif [ "$RET" = "false" ]; then
+        if grep -s -q -E '^#?txindex=' /etc/bitcoin/bitcoin.conf; then
+          sed -i -E "/^#?txindex=/c\txindex=0" /etc/bitcoin/bitcoin.conf
+        else
+          db_input high bitcoin-knots/txindex-fail || true
+          db_go || true
+        fi
+      fi
+    fi
   fi
+  unset RET
   
   db_stop
   ;;

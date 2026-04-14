@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bitcoin-knots\n"
 "Report-Msgid-Bugs-To: bitcoin-knots@packages.debian.org\n"
-"POT-Creation-Date: 2026-04-13 16:19+0200\n"
+"POT-Creation-Date: 2026-04-14 13:57+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Léo Haf <leo@haf.ovh>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -31,8 +31,8 @@ msgid ""
 "Save storage space by pruning (deleting) old blocks  and keeping only a "
 "limited copy of the blockchain."
 msgstr ""
-"Économisez de l'espace de stockage en élaguant (supprimant) les anciens blocs "
-"et en ne conservant qu'une copie limitée de la blockchain."
+"Économisez de l'espace de stockage en élaguant (supprimant) les anciens "
+"blocs et en ne conservant qu'une copie limitée de la blockchain."
 
 #. Type: string
 #. Description
@@ -63,8 +63,8 @@ msgid ""
 "Couldn't configure the prune setting as expected,  please set your value "
 "manually in /etc/bitcoin/bitcoin.conf"
 msgstr ""
-"Impossible de configurer le paramètre d'élagage comme prévu.  "
-"Veuillez définir manuellement la valeur dans /etc/bitcoin/bitcoin.conf"
+"Impossible de configurer le paramètre d'élagage comme prévu.  Veuillez "
+"définir manuellement la valeur dans /etc/bitcoin/bitcoin.conf"
 
 #. Type: note
 #. Description
@@ -77,3 +77,31 @@ msgstr "Mauvaise valeur pour l'élagage"
 #: ../bitcoin-knots.templates:4001
 msgid "Prune must be O, 1 or superior or equal to 550"
 msgstr "l'élagage doit être 0, 1 ou supérieur ou égale à 550"
+
+#. Type: boolean
+#. Description
+#: ../bitcoin-knots.templates:5001
+msgid "Do you want to enable transaction index?"
+msgstr "Souhaitez-vous activer l'index des transactions ?"
+
+#. Type: boolean
+#. Description
+#: ../bitcoin-knots.templates:5001
+msgid "This is required for electrum servers and various other software"
+msgstr "Ceci est nécessaire pour les serveurs Electrum et d'autres logiciels"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:6001
+msgid "Couldn't configure txindex"
+msgstr "Impossible de configurer txindex"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:6001
+msgid ""
+"Couldn't configure the txindex setting as expected,  please set your value "
+"manually in /etc/bitcoin/bitcoin.conf"
+msgstr ""
+"Impossible de configurer le paramètre txindex comme prévu.  Veuillez "
+"définir manuellement la valeur dans /etc/bitcoin/bitcoin.conf"
