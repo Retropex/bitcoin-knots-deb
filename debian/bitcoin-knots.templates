@@ -36,6 +36,7 @@ _Description: Couldn't configure txindex
 
 Template: bitcoin-knots/dbcache
 Type: string
+Default: 450
 _Description: Value for dbcache (must be at least 4) in MiB:
  A larger cache can speed up the initial synchronization of your Bitcoin node,  
  but after the initial sync is complete, a larger cache value does not 
