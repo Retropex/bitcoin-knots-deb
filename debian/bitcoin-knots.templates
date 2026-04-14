@@ -12,7 +12,7 @@ _Description: Value for pruning (must be at least 550 or 0/1) in MiB:
  >=550 = automatically prune block files to stay under the target size in MiB
 
 Template: bitcoin-knots/prune-bool-fail
-Type: note
+Type: error
 _Description: Couldn't configure prune
  Couldn't configure the prune setting as expected, 
  please set your value manually in /etc/bitcoin/bitcoin.conf
@@ -29,7 +29,7 @@ _Description: Do you want to enable transaction index?
  This is required for electrum servers and various other software
 
 Template: bitcoin-knots/txindex-fail
-Type: note
+Type: error
 _Description: Couldn't configure txindex
  Couldn't configure the txindex setting as expected, 
  please set your value manually in /etc/bitcoin/bitcoin.conf
@@ -42,7 +42,7 @@ _Description: Value for dbcache (must be at least 4) in MiB:
  significantly improve performance and may use more RAM than needed.
 
 Template: bitcoin-knots/dbcache-fail
-Type: note
+Type: error
 _Description: Couldn't configure dbcache
  Couldn't configure the dbcache setting as expected, 
  please set your value manually in /etc/bitcoin/bitcoin.conf

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bitcoin-knots\n"
 "Report-Msgid-Bugs-To: bitcoin-knots@packages.debian.org\n"
-"POT-Creation-Date: 2026-04-14 15:46+0200\n"
+"POT-Creation-Date: 2026-04-14 16:59+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -45,13 +45,13 @@ msgid ""
 "block files to stay under the target size in MiB"
 msgstr ""
 
-#. Type: note
+#. Type: error
 #. Description
 #: ../bitcoin-knots.templates:3001
 msgid "Couldn't configure prune"
 msgstr ""
 
-#. Type: note
+#. Type: error
 #. Description
 #: ../bitcoin-knots.templates:3001
 msgid ""
@@ -83,13 +83,13 @@ msgstr ""
 msgid "This is required for electrum servers and various other software"
 msgstr ""
 
-#. Type: note
+#. Type: error
 #. Description
 #: ../bitcoin-knots.templates:6001
 msgid "Couldn't configure txindex"
 msgstr ""
 
-#. Type: note
+#. Type: error
 #. Description
 #: ../bitcoin-knots.templates:6001
 msgid ""
@@ -112,13 +112,13 @@ msgid ""
 "not  significantly improve performance and may use more RAM than needed."
 msgstr ""
 
-#. Type: note
+#. Type: error
 #. Description
 #: ../bitcoin-knots.templates:8001
 msgid "Couldn't configure dbcache"
 msgstr ""
 
-#. Type: note
+#. Type: error
 #. Description
 #: ../bitcoin-knots.templates:8001
 msgid ""

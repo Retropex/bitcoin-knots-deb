@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bitcoin-knots\n"
 "Report-Msgid-Bugs-To: bitcoin-knots@packages.debian.org\n"
-"POT-Creation-Date: 2026-04-14 15:46+0200\n"
+"POT-Creation-Date: 2026-04-14 16:59+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Léo Haf <leo@haf.ovh>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -50,13 +50,13 @@ msgstr ""
 "0 = désactivé, 1 = autoriser l'élagage manuel via RPC, >=550 = élagage "
 "automatique des fichiers de blocs pour rester sous la taille cible en Mio"
 
-#. Type: note
+#. Type: error
 #. Description
 #: ../bitcoin-knots.templates:3001
 msgid "Couldn't configure prune"
 msgstr "Impossible de configurer l'élagage"
 
-#. Type: note
+#. Type: error
 #. Description
 #: ../bitcoin-knots.templates:3001
 msgid ""
@@ -90,13 +90,13 @@ msgstr "Souhaitez-vous activer l'index des transactions ?"
 msgid "This is required for electrum servers and various other software"
 msgstr "Ceci est nécessaire pour les serveurs Electrum et d'autres logiciels"
 
-#. Type: note
+#. Type: error
 #. Description
 #: ../bitcoin-knots.templates:6001
 msgid "Couldn't configure txindex"
 msgstr "Impossible de configurer txindex"
 
-#. Type: note
+#. Type: error
 #. Description
 #: ../bitcoin-knots.templates:6001
 msgid ""
@@ -125,13 +125,13 @@ msgstr ""
 "de cache plus importante n'améliore pas significativement les performances "
 "et peut utiliser plus de RAM que nécessaire."
 
-#. Type: note
+#. Type: error
 #. Description
 #: ../bitcoin-knots.templates:8001
 msgid "Couldn't configure dbcache"
 msgstr "Impossible de configurer dbcache"
 
-#. Type: note
+#. Type: error
 #. Description
 #: ../bitcoin-knots.templates:8001
 msgid ""
