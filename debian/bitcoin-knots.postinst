@@ -40,18 +40,7 @@ case "$1" in
   if [ -f /etc/bitcoin/bitcoin.conf ]; then
     db_get bitcoin-knots/prune-bool || RET=
     if [ "$RET" = "true" ]; then
-      while true; do
-        unset RET
-        db_get bitcoin-knots/prune || RET=
-        if echo "$RET" | grep -sqE '^[0-9]+$' && [ "$RET" -eq 0 ] || [ "$RET" -eq 1 ] || [ "$RET" -ge 550 ]; then
-          break
-        fi
-        db_input high bitcoin-knots/prune-fail || true
-        db_go || true
-        db_input medium bitcoin-knots/prune || true
-        db_go || true
-      done
-      
+      db_get bitcoin-knots/prune || RET=
       if [ "$RET" ]; then
         disable_txindex
         if grep -s -q -E '^#?prune=' /etc/bitcoin/bitcoin.conf; then
@@ -89,17 +78,6 @@ case "$1" in
     
     db_get bitcoin-knots/dbcache || RET=
     if [ "$RET" ]; then
-      while true; do
-        if echo "$RET" | grep -sqE '^[0-9]+$' && [ "$RET" -ge 4 ]; then
-          break
-        fi
-        db_input high bitcoin-knots/dbcache-wrong || true
-        db_go || true
-        db_input medium bitcoin-knots/dbcache || true
-        db_go || true
-        db_get bitcoin-knots/dbcache || RET=
-      done
-      
       if grep -s -q -E '^#?dbcache=' /etc/bitcoin/bitcoin.conf; then
         sed -i -E "/^#?dbcache=/c\dbcache=$RET" /etc/bitcoin/bitcoin.conf
       else
