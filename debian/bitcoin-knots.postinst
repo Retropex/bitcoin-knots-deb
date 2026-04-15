@@ -7,6 +7,15 @@ USER="bitcoin"
 # Source debconf library
 . /usr/share/debconf/confmodule
 
+disable_txindex () {
+  if grep -s -q -E '^#?txindex=' /etc/bitcoin/bitcoin.conf; then
+    sed -i -E "/^#?txindex=/c\txindex=0" /etc/bitcoin/bitcoin.conf
+  else
+    db_input high bitcoin-knots/txindex-fail || true
+    db_go || true
+  fi
+}
+
 case "$1" in
   configure|reconfigure)
   
@@ -44,6 +53,7 @@ case "$1" in
       done
       
       if [ "$RET" ]; then
+        disable_txindex
         if grep -s -q -E '^#?prune=' /etc/bitcoin/bitcoin.conf; then
           sed -i -E "/^#?prune=/c\prune=$RET" /etc/bitcoin/bitcoin.conf
         else
@@ -72,12 +82,7 @@ case "$1" in
           db_go || true
         fi
       elif [ "$RET" = "false" ]; then
-        if grep -s -q -E '^#?txindex=' /etc/bitcoin/bitcoin.conf; then
-          sed -i -E "/^#?txindex=/c\txindex=0" /etc/bitcoin/bitcoin.conf
-        else
-          db_input high bitcoin-knots/txindex-fail || true
-          db_go || true
-        fi
+        disable_txindex
       fi
     fi
     unset RET
