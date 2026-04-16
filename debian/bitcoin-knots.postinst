@@ -204,7 +204,6 @@ case "$1" in
     fi
     unset RET
   fi
-  unset RET
   
   db_stop
   ;;
