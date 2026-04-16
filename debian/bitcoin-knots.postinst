@@ -50,7 +50,25 @@ case "$1" in
           db_go || true
         fi
       fi
+      unset RET
+      
+      db_get bitcoin-knots/pruneduringinit || RET=
+      if [ "$RET" ]; then
+        if grep -s -q -E '^#?pruneduringinit=' /etc/bitcoin/bitcoin.conf; then
+          sed -i -E "/^#?pruneduringinit=/c\pruneduringinit=$RET" /etc/bitcoin/bitcoin.conf
+        else
+          db_input high bitcoin-knots/pruneduringinit-fail || true
+          db_go || true
+        fi
+      fi
     elif [ "$RET" = "false" ]; then
+      if grep -s -q -E '^#?pruneduringinit=' /etc/bitcoin/bitcoin.conf; then
+        sed -i -E "/^#?pruneduringinit=/c\pruneduringinit=-1" /etc/bitcoin/bitcoin.conf
+      else
+        db_input high bitcoin-knots/pruneduringinit-fail || true
+        db_go || true
+      fi
+      
       if grep -s -q -E '^#?prune=' /etc/bitcoin/bitcoin.conf; then
         sed -i -E "/^#?prune=/c\prune=0" /etc/bitcoin/bitcoin.conf
       else
@@ -82,17 +100,6 @@ case "$1" in
         sed -i -E "/^#?dbcache=/c\dbcache=$RET" /etc/bitcoin/bitcoin.conf
       else
         db_input high bitcoin-knots/dbcache-fail || true
-        db_go || true
-      fi
-    fi
-    unset RET
-    
-    db_get bitcoin-knots/pruneduringinit || RET=
-    if [ "$RET" ]; then
-      if grep -s -q -E '^#?pruneduringinit=' /etc/bitcoin/bitcoin.conf; then
-        sed -i -E "/^#?pruneduringinit=/c\pruneduringinit=$RET" /etc/bitcoin/bitcoin.conf
-      else
-        db_input high bitcoin-knots/pruneduringinit-fail || true
         db_go || true
       fi
     fi
