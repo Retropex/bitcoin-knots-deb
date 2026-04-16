@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bitcoin-knots\n"
 "Report-Msgid-Bugs-To: bitcoin-knots@packages.debian.org\n"
-"POT-Creation-Date: 2026-04-14 17:33+0200\n"
+"POT-Creation-Date: 2026-04-15 16:51+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Léo Haf <leo@haf.ovh>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -170,3 +170,49 @@ msgid ""
 msgstr ""
 "Le fichier /var/lib/bitcoin.conf est manquant, debconf attend ce fichier "
 "pour configurer bitcoind de manière interactive."
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:11001
+msgid "Value for pruneduringinit (must be at least 550 or -1/0/1) in MiB:"
+msgstr ""
+"Valeur de pruneduringinit (doit être au moins de 550 ou -1/0/1) en Mio :"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:11001
+msgid ""
+"-1 = same as prune, 0 = disabled, 1 = allow manual pruning via RPC,  >=550 = "
+"automatically prune block files to stay under the target size in MiB"
+msgstr ""
+"-1 = même que prune, 0 = désactivé, 1 = autoriser l'élagage manuel via RPC, "
+">=550 = élagage automatique des fichiers de blocs pour rester sous la taille "
+"cible en Mio"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:12001
+msgid "Bad value for pruneduringinit"
+msgstr "Mauvaise valeur pour pruneduringinit"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:12001
+msgid "Pruneduringinit must be -1, O, 1 or superior or equal to 550"
+msgstr "Pruneduringinit doit être -1, 0, 1 ou supérieur ou égale à 550"
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:13001
+msgid "Couldn't configure pruneduringinit"
+msgstr "Impossible de configurer pruneduringinit"
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:13001
+msgid ""
+"Couldn't configure the pruneduringinit setting as expected,  please set your "
+"value manually in /etc/bitcoin/bitcoin.conf"
+msgstr ""
+"Impossible de configurer le paramètre pruneduringinit comme prévu.  Veuillez "
+"définir manuellement la valeur dans /etc/bitcoin/bitcoin.conf"

@@ -85,6 +85,18 @@ case "$1" in
         db_go || true
       fi
     fi
+    unset RET
+    
+    db_get bitcoin-knots/pruneduringinit || RET=
+    if [ "$RET" ]; then
+      if grep -s -q -E '^#?pruneduringinit=' /etc/bitcoin/bitcoin.conf; then
+        sed -i -E "/^#?pruneduringinit=/c\pruneduringinit=$RET" /etc/bitcoin/bitcoin.conf
+      else
+        db_input high bitcoin-knots/pruneduringinit-fail || true
+        db_go || true
+      fi
+    fi
+    unset RET
   fi
   unset RET
   

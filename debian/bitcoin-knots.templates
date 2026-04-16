@@ -58,3 +58,22 @@ Type: error
 _Description: bitcoin.conf file missing, unable to interactively configure bitcoind
  the file /var/lib/bitcoin.conf is missing, debconf expect this file to 
  interactively configure bitcoind.
+
+Template: bitcoin-knots/pruneduringinit
+Type: string
+Default: -1
+_Description: Value for pruneduringinit (must be at least 550 or -1/0/1) in MiB:
+ -1 = same as prune, 0 = disabled, 1 = allow manual pruning via RPC, 
+ >=550 = automatically prune block files to stay under the target size in MiB
+
+Template: bitcoin-knots/pruneduringinit-wrong
+Type: note
+Default: -1
+_Description: Bad value for pruneduringinit
+ Pruneduringinit must be -1, O, 1 or superior or equal to 550
+
+Template: bitcoin-knots/pruneduringinit-fail
+Type: error
+_Description: Couldn't configure pruneduringinit
+ Couldn't configure the pruneduringinit setting as expected, 
+ please set your value manually in /etc/bitcoin/bitcoin.conf
