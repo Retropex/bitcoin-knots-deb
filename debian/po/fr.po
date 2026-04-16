@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bitcoin-knots\n"
 "Report-Msgid-Bugs-To: bitcoin-knots@packages.debian.org\n"
-"POT-Creation-Date: 2026-04-16 15:15+0200\n"
+"POT-Creation-Date: 2026-04-16 15:46+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Léo Haf <leo@haf.ovh>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -298,3 +298,83 @@ msgid ""
 msgstr ""
 "Impossible de configurer le paramètre rpcworkqueue comme prévu.  Veuillez "
 "définir manuellement la valeur dans /etc/bitcoin/bitcoin.conf"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:20001
+msgid "Value for blockprioritysize:"
+msgstr "Valeur pour blockprioritysize:"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:20001
+msgid "Set maximum size of high-priority/low-fee transactions in bytes"
+msgstr "Définit la taille maximale des transactions prioritaires/à faibles frais en octets"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:21001
+msgid "Bad value for blockprioritysize"
+msgstr "Mauvaise valeur pour blockprioritysize"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:21001
+msgid "blockprioritysize must be between 0 and 4000000"
+msgstr "blockprioritysize doit être entre 0 et 4000000"
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:22001
+msgid "Couldn't configure blockprioritysize"
+msgstr "Impossible de configurer blockprioritysize"
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:22001
+msgid ""
+"Couldn't configure the blockprioritysize setting as expected,  please set "
+"your value manually in /etc/bitcoin/bitcoin.conf"
+msgstr ""
+"Impossible de configurer le paramètre blockprioritysize comme prévu.  Veuillez "
+"définir manuellement la valeur dans /etc/bitcoin/bitcoin.conf"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:23001
+msgid "Value for blockmaxsize:"
+msgstr "Valeur pour blockmaxsize:"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:23001
+msgid "Set maximum block size in bytes"
+msgstr "Définit la taille maximale des blocs en octets"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:24001
+msgid "Bad value for blockmaxsize"
+msgstr "Mauvaise valeur pour blockmaxsize"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:24001
+msgid "blockmaxsize must be between 0 and 3985000"
+msgstr "blockmaxsize doit être entre 0 et 3985000"
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:25001
+msgid "Couldn't configure blockmaxsize"
+msgstr "Impossible de configurer blockmaxsize"
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:25001
+msgid ""
+"Couldn't configure the blockmaxsize setting as expected,  please set your "
+"value manually in /etc/bitcoin/bitcoin.conf"
+msgstr ""
+"Impossible de configurer le paramètre blockmaxsize comme prévu.  Veuillez définir "
+"manuellement la valeur dans /etc/bitcoin/bitcoin.conf"

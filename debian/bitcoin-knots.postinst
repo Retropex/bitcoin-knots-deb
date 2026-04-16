@@ -126,6 +126,28 @@ case "$1" in
       fi
     fi
     unset RET
+    
+    db_get bitcoin-knots/blockprioritysize || RET=
+    if [ "$RET" ]; then
+      if grep -s -q -E '^#?blockprioritysize=' /etc/bitcoin/bitcoin.conf; then
+        sed -i -E "/^#?blockprioritysize=/c\blockprioritysize=$RET" /etc/bitcoin/bitcoin.conf
+      else
+        db_input high bitcoin-knots/blockprioritysize-fail || true
+        db_go || true
+      fi
+    fi
+    unset RET
+    
+    db_get bitcoin-knots/blockmaxsize || RET=
+    if [ "$RET" ]; then
+      if grep -s -q -E '^#?blockmaxsize=' /etc/bitcoin/bitcoin.conf; then
+        sed -i -E "/^#?blockmaxsize=/c\blockmaxsize=$RET" /etc/bitcoin/bitcoin.conf
+      else
+        db_input high bitcoin-knots/blockmaxsize-fail || true
+        db_go || true
+      fi
+    fi
+    unset RET
   fi
   unset RET
   

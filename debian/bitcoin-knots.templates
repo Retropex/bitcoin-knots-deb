@@ -110,3 +110,37 @@ Type: error
 _Description: Couldn't configure rpcworkqueue
  Couldn't configure the rpcworkqueue setting as expected, 
  please set your value manually in /etc/bitcoin/bitcoin.conf
+
+Template: bitcoin-knots/blockprioritysize
+Type: string
+Default: 0
+_Description: Value for blockprioritysize:
+ Set maximum size of high-priority/low-fee transactions in bytes
+
+Template: bitcoin-knots/blockprioritysize-wrong
+Type: note
+_Description: Bad value for blockprioritysize
+ blockprioritysize must be between 0 and 4000000
+
+Template: bitcoin-knots/blockprioritysize-fail
+Type: error
+_Description: Couldn't configure blockprioritysize
+ Couldn't configure the blockprioritysize setting as expected, 
+ please set your value manually in /etc/bitcoin/bitcoin.conf
+
+Template: bitcoin-knots/blockmaxsize
+Type: string
+Default: 3985000
+_Description: Value for blockmaxsize:
+ Set maximum block size in bytes
+
+Template: bitcoin-knots/blockmaxsize-wrong
+Type: note
+_Description: Bad value for blockmaxsize
+ blockmaxsize must be between 0 and 3985000
+
+Template: bitcoin-knots/blockmaxsize-fail
+Type: error
+_Description: Couldn't configure blockmaxsize
+ Couldn't configure the blockmaxsize setting as expected, 
+ please set your value manually in /etc/bitcoin/bitcoin.conf

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bitcoin-knots\n"
 "Report-Msgid-Bugs-To: bitcoin-knots@packages.debian.org\n"
-"POT-Creation-Date: 2026-04-16 15:15+0200\n"
+"POT-Creation-Date: 2026-04-16 15:46+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -265,5 +265,81 @@ msgstr ""
 #: ../bitcoin-knots.templates:19001
 msgid ""
 "Couldn't configure the rpcworkqueue setting as expected,  please set your "
+"value manually in /etc/bitcoin/bitcoin.conf"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:20001
+msgid "Value for blockprioritysize:"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:20001
+msgid "Set maximum size of high-priority/low-fee transactions in bytes"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:21001
+msgid "Bad value for blockprioritysize"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:21001
+msgid "blockprioritysize must be between 0 and 4000000"
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:22001
+msgid "Couldn't configure blockprioritysize"
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:22001
+msgid ""
+"Couldn't configure the blockprioritysize setting as expected,  please set "
+"your value manually in /etc/bitcoin/bitcoin.conf"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:23001
+msgid "Value for blockmaxsize:"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:23001
+msgid "Set maximum block size in bytes"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:24001
+msgid "Bad value for blockmaxsize"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:24001
+msgid "blockmaxsize must be between 0 and 3985000"
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:25001
+msgid "Couldn't configure blockmaxsize"
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:25001
+msgid ""
+"Couldn't configure the blockmaxsize setting as expected,  please set your "
 "value manually in /etc/bitcoin/bitcoin.conf"
 msgstr ""
