@@ -16,6 +16,20 @@ disable_txindex () {
   fi
 }
 
+update_conf_param () {
+  local param="$1"
+  db_get "bitcoin-knots/$param" || RET=
+  if [ "$RET" ]; then
+    if grep -s -q -E "^#?${param}=" /etc/bitcoin/bitcoin.conf; then
+      sed -i -E "/^#?${param}=/c\\${param}=$RET" /etc/bitcoin/bitcoin.conf
+    else
+      db_input high "bitcoin-knots/${param}-fail" || true
+      db_go || true
+    fi
+  fi
+  unset RET
+}
+
 case "$1" in
   configure|reconfigure)
   
@@ -94,115 +108,16 @@ case "$1" in
     fi
     unset RET
     
-    db_get bitcoin-knots/dbcache || RET=
-    if [ "$RET" ]; then
-      if grep -s -q -E '^#?dbcache=' /etc/bitcoin/bitcoin.conf; then
-        sed -i -E "/^#?dbcache=/c\dbcache=$RET" /etc/bitcoin/bitcoin.conf
-      else
-        db_input high bitcoin-knots/dbcache-fail || true
-        db_go || true
-      fi
-    fi
-    unset RET
-    
-    db_get bitcoin-knots/rpcthreads || RET=
-    if [ "$RET" ]; then
-      if grep -s -q -E '^#?rpcthreads=' /etc/bitcoin/bitcoin.conf; then
-        sed -i -E "/^#?rpcthreads=/c\rpcthreads=$RET" /etc/bitcoin/bitcoin.conf
-      else
-        db_input high bitcoin-knots/rpcthreads-fail || true
-        db_go || true
-      fi
-    fi
-    unset RET
-    
-    db_get bitcoin-knots/rpcworkqueue || RET=
-    if [ "$RET" ]; then
-      if grep -s -q -E '^#?rpcworkqueue=' /etc/bitcoin/bitcoin.conf; then
-        sed -i -E "/^#?rpcworkqueue=/c\rpcworkqueue=$RET" /etc/bitcoin/bitcoin.conf
-      else
-        db_input high bitcoin-knots/rpcworkqueue-fail || true
-        db_go || true
-      fi
-    fi
-    unset RET
-    
-    db_get bitcoin-knots/blockprioritysize || RET=
-    if [ "$RET" ]; then
-      if grep -s -q -E '^#?blockprioritysize=' /etc/bitcoin/bitcoin.conf; then
-        sed -i -E "/^#?blockprioritysize=/c\blockprioritysize=$RET" /etc/bitcoin/bitcoin.conf
-      else
-        db_input high bitcoin-knots/blockprioritysize-fail || true
-        db_go || true
-      fi
-    fi
-    unset RET
-    
-    db_get bitcoin-knots/blockmaxsize || RET=
-    if [ "$RET" ]; then
-      if grep -s -q -E '^#?blockmaxsize=' /etc/bitcoin/bitcoin.conf; then
-        sed -i -E "/^#?blockmaxsize=/c\blockmaxsize=$RET" /etc/bitcoin/bitcoin.conf
-      else
-        db_input high bitcoin-knots/blockmaxsize-fail || true
-        db_go || true
-      fi
-    fi
-    unset RET
-    
-    db_get bitcoin-knots/blockmaxweight || RET=
-    if [ "$RET" ]; then
-      if grep -s -q -E '^#?blockmaxweight=' /etc/bitcoin/bitcoin.conf; then
-        sed -i -E "/^#?blockmaxweight=/c\blockmaxweight=$RET" /etc/bitcoin/bitcoin.conf
-      else
-        db_input high bitcoin-knots/blockmaxweight-fail || true
-        db_go || true
-      fi
-    fi
-    unset RET
-    
-    db_get bitcoin-knots/maxmempool || RET=
-    if [ "$RET" ]; then
-      if grep -s -q -E '^#?maxmempool=' /etc/bitcoin/bitcoin.conf; then
-        sed -i -E "/^#?maxmempool=/c\maxmempool=$RET" /etc/bitcoin/bitcoin.conf
-      else
-        db_input high bitcoin-knots/maxmempool-fail || true
-        db_go || true
-      fi
-    fi
-    unset RET
-    
-    db_get bitcoin-knots/blockreconstructionextratxn || RET=
-    if [ "$RET" ]; then
-      if grep -s -q -E '^#?blockreconstructionextratxn=' /etc/bitcoin/bitcoin.conf; then
-        sed -i -E "/^#?blockreconstructionextratxn=/c\blockreconstructionextratxn=$RET" /etc/bitcoin/bitcoin.conf
-      else
-        db_input high bitcoin-knots/blockreconstructionextratxn-fail || true
-        db_go || true
-      fi
-    fi
-    unset RET
-    
-    db_get bitcoin-knots/blockreconstructionextratxnsize || RET=
-    if [ "$RET" ]; then
-      if grep -s -q -E '^#?blockreconstructionextratxnsize=' /etc/bitcoin/bitcoin.conf; then
-        sed -i -E "/^#?blockreconstructionextratxnsize=/c\blockreconstructionextratxnsize=$RET" /etc/bitcoin/bitcoin.conf
-      else
-        db_input high bitcoin-knots/blockreconstructionextratxnsize-fail || true
-        db_go || true
-      fi
-    fi
-    unset RET
-    
-    db_get bitcoin-knots/maxorphantx || RET=
-    if [ "$RET" ]; then
-      if grep -s -q -E '^#?maxorphantx=' /etc/bitcoin/bitcoin.conf; then
-        sed -i -E "/^#?maxorphantx=/c\maxorphantx=$RET" /etc/bitcoin/bitcoin.conf
-      else
-        db_input high bitcoin-knots/maxorphantx-fail || true
-        db_go || true
-      fi
-    fi
-    unset RET
+    update_conf_param dbcache
+    update_conf_param rpcthreads
+    update_conf_param rpcworkqueue
+    update_conf_param blockprioritysize
+    update_conf_param blockmaxsize
+    update_conf_param blockmaxweight
+    update_conf_param maxmempool
+    update_conf_param blockreconstructionextratxn
+    update_conf_param blockreconstructionextratxnsize
+    update_conf_param maxorphantx
   fi
   
   db_stop
