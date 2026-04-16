@@ -1,0 +1,16 @@
+Description: Add a debug options in the example file
+Author: Léo Haf <leo@haf.ovh>
+Forwarded: not-needed
+Last-Update: 2026-04-16
+--- a/share/examples/bitcoin.conf
++++ b/share/examples/bitcoin.conf
+@@ -824,6 +824,9 @@ datadir=/var/lib/bitcoin/
+ # Set the number of threads to service RPC calls (default: 16)
+ #rpcthreads=<n>
+ 
++# Set the maximum depth of the work queue to service RPC calls (default: 64)
++#rpcworkqueue=<n>
++
+ # Username for JSON-RPC connections
+ #rpcuser=<user>
+ 

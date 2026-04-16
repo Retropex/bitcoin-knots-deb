@@ -4,15 +4,15 @@ Forwarded: not-needed
 Last-Update: 2026-04-10
 --- a/share/examples/bitcoin.conf
 +++ b/share/examples/bitcoin.conf
-@@ -52,7 +52,7 @@
+@@ -89,7 +89,7 @@
+ #daemonwait=1
  
- # Specify directory to hold blocks subdirectory for *.dat files (default:
- # <datadir>)
--#blocksdir=<dir>
+ # Specify data directory
+-#datadir=<dir>
 +datadir=/var/lib/bitcoin/
  
- # Whether to reject transactions from network peers. Disables automatic
- # broadcast and rebroadcast of transactions, unless the source peer
+ # Maximum database cache size <n> MiB (minimum 4, default: 450). Make sure
+ # you have enough RAM. In addition, unused memory allocated to the
 @@ -843,7 +843,7 @@
  #rpcwhitelistdefault=1
  

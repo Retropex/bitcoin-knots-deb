@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bitcoin-knots\n"
 "Report-Msgid-Bugs-To: bitcoin-knots@packages.debian.org\n"
-"POT-Creation-Date: 2026-04-15 16:51+0200\n"
+"POT-Creation-Date: 2026-04-16 13:54+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -189,5 +189,81 @@ msgstr ""
 #: ../bitcoin-knots.templates:13001
 msgid ""
 "Couldn't configure the pruneduringinit setting as expected,  please set your "
+"value manually in /etc/bitcoin/bitcoin.conf"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:14001
+msgid "Value for rpcthreads (must be superior or equal to 0):"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:14001
+msgid "Set the number of threads to service RPC calls"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:15001
+msgid "Bad value for rpcthreads"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:15001
+msgid "rpcthreads must be superior or equal to 0"
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:16001
+msgid "Couldn't configure rpcthreads"
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:16001
+msgid ""
+"Couldn't configure the rpcthreads setting as expected,  please set your "
+"value manually in /etc/bitcoin/bitcoin.conf"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:17001
+msgid "Value for rpcworkqueue (must be superior or equal to 0):"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:17001
+msgid "Set the maximum depth of the work queue to service RPC calls"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:18001
+msgid "Bad value for rpcworkqueue"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:18001
+msgid "rpcworkqueue must be superior or equal to 0"
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:19001
+msgid "Couldn't configure rpcworkqueue"
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:19001
+msgid ""
+"Couldn't configure the rpcworkqueue setting as expected,  please set your "
 "value manually in /etc/bitcoin/bitcoin.conf"
 msgstr ""

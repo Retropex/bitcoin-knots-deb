@@ -97,6 +97,28 @@ case "$1" in
       fi
     fi
     unset RET
+    
+    db_get bitcoin-knots/rpcthreads || RET=
+    if [ "$RET" ]; then
+      if grep -s -q -E '^#?rpcthreads=' /etc/bitcoin/bitcoin.conf; then
+        sed -i -E "/^#?rpcthreads=/c\rpcthreads=$RET" /etc/bitcoin/bitcoin.conf
+      else
+        db_input high bitcoin-knots/rpcthreads-fail || true
+        db_go || true
+      fi
+    fi
+    unset RET
+    
+    db_get bitcoin-knots/rpcworkqueue || RET=
+    if [ "$RET" ]; then
+      if grep -s -q -E '^#?rpcworkqueue=' /etc/bitcoin/bitcoin.conf; then
+        sed -i -E "/^#?rpcworkqueue=/c\rpcworkqueue=$RET" /etc/bitcoin/bitcoin.conf
+      else
+        db_input high bitcoin-knots/rpcworkqueue-fail || true
+        db_go || true
+      fi
+    fi
+    unset RET
   fi
   unset RET
   

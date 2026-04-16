@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bitcoin-knots\n"
 "Report-Msgid-Bugs-To: bitcoin-knots@packages.debian.org\n"
-"POT-Creation-Date: 2026-04-15 16:51+0200\n"
+"POT-Creation-Date: 2026-04-16 13:54+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Léo Haf <leo@haf.ovh>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -215,4 +215,84 @@ msgid ""
 "value manually in /etc/bitcoin/bitcoin.conf"
 msgstr ""
 "Impossible de configurer le paramètre pruneduringinit comme prévu.  Veuillez "
+"définir manuellement la valeur dans /etc/bitcoin/bitcoin.conf"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:14001
+msgid "Value for rpcthreads (must be superior or equal to 0):"
+msgstr "la valeur de rpcthreads doit être supérieur ou égale à 0"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:14001
+msgid "Set the number of threads to service RPC calls"
+msgstr "Définit le nombre de threads pour les appels RPC"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:15001
+msgid "Bad value for rpcthreads"
+msgstr "Mauvaise valeur pour rpcthreads"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:15001
+msgid "rpcthreads must be superior or equal to 0"
+msgstr "rpcthreads doit être supérieur ou égale à 0"
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:16001
+msgid "Couldn't configure rpcthreads"
+msgstr "Impossible de configurer rpcthreads"
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:16001
+msgid ""
+"Couldn't configure the rpcthreads setting as expected,  please set your "
+"value manually in /etc/bitcoin/bitcoin.conf"
+msgstr ""
+"Impossible de configurer le paramètre rpcthreads comme prévu.  Veuillez "
+"définir manuellement la valeur dans /etc/bitcoin/bitcoin.conf"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:17001
+msgid "Value for rpcworkqueue (must be superior or equal to 0):"
+msgstr "La valeur de rpcworkqueue doit être supérieur ou égale à 0"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:17001
+msgid "Set the maximum depth of the work queue to service RPC calls"
+msgstr "Définit la profondeur maximale de la file d'attente de travail pour traiter les appels RPC"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:18001
+msgid "Bad value for rpcworkqueue"
+msgstr "Mauvaise valeur pour rpcworkqueue"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:18001
+msgid "rpcworkqueue must be superior or equal to 0"
+msgstr "rpcworkqueue doit être supérieur ou égale à 0"
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:19001
+msgid "Couldn't configure rpcworkqueue"
+msgstr "Impossible de configurer rpcworkqueue"
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:19001
+msgid ""
+"Couldn't configure the rpcworkqueue setting as expected,  please set your "
+"value manually in /etc/bitcoin/bitcoin.conf"
+msgstr ""
+"Impossible de configurer le paramètre rpcworkqueue comme prévu.  Veuillez "
 "définir manuellement la valeur dans /etc/bitcoin/bitcoin.conf"
