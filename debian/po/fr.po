@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bitcoin-knots\n"
 "Report-Msgid-Bugs-To: bitcoin-knots@packages.debian.org\n"
-"POT-Creation-Date: 2026-04-16 13:54+0200\n"
+"POT-Creation-Date: 2026-04-16 15:15+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Léo Haf <leo@haf.ovh>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -75,7 +75,7 @@ msgstr "Mauvaise valeur pour l'élagage"
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:4001
-msgid "Prune must be O, 1 or superior or equal to 550"
+msgid "Prune must be 0, 1 or superior or equal to 550"
 msgstr "l'élagage doit être 0, 1 ou supérieur ou égale à 550"
 
 #. Type: boolean
@@ -165,10 +165,10 @@ msgstr ""
 #. Description
 #: ../bitcoin-knots.templates:10001
 msgid ""
-"the file /var/lib/bitcoin.conf is missing, debconf expect this file to  "
+"the file /etc/bitcoin/bitcoin.conf is missing, debconf expect this file to  "
 "interactively configure bitcoind."
 msgstr ""
-"Le fichier /var/lib/bitcoin.conf est manquant, debconf attend ce fichier "
+"Le fichier /etc/bitcoin/bitcoin.conf est manquant, debconf attend ce fichier "
 "pour configurer bitcoind de manière interactive."
 
 #. Type: string
@@ -198,7 +198,7 @@ msgstr "Mauvaise valeur pour pruneduringinit"
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:12001
-msgid "Pruneduringinit must be -1, O, 1 or superior or equal to 550"
+msgid "Pruneduringinit must be -1, 0, 1 or superior or equal to 550"
 msgstr "Pruneduringinit doit être -1, 0, 1 ou supérieur ou égale à 550"
 
 #. Type: error
@@ -267,7 +267,9 @@ msgstr "La valeur de rpcworkqueue doit être supérieur ou égale à 0"
 #. Description
 #: ../bitcoin-knots.templates:17001
 msgid "Set the maximum depth of the work queue to service RPC calls"
-msgstr "Définit la profondeur maximale de la file d'attente de travail pour traiter les appels RPC"
+msgstr ""
+"Définit la profondeur maximale de la file d'attente de travail pour traiter "
+"les appels RPC"
 
 #. Type: note
 #. Description

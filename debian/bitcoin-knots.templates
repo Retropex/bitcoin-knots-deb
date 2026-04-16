@@ -20,7 +20,7 @@ _Description: Couldn't configure prune
 Template: bitcoin-knots/prune-fail
 Type: note
 _Description: Bad value for prune
- Prune must be O, 1 or superior or equal to 550
+ Prune must be 0, 1 or superior or equal to 550
 
 Template: bitcoin-knots/txindex
 Type: boolean
@@ -56,7 +56,7 @@ _Description: Bad value for dbcache
 Template: bitcoin-knots/bitcoinconf
 Type: error
 _Description: bitcoin.conf file missing, unable to interactively configure bitcoind
- the file /var/lib/bitcoin.conf is missing, debconf expect this file to 
+ the file /etc/bitcoin/bitcoin.conf is missing, debconf expect this file to 
  interactively configure bitcoind.
 
 Template: bitcoin-knots/pruneduringinit
@@ -69,7 +69,7 @@ _Description: Value for pruneduringinit (must be at least 550 or -1/0/1) in MiB:
 Template: bitcoin-knots/pruneduringinit-wrong
 Type: note
 _Description: Bad value for pruneduringinit
- Pruneduringinit must be -1, O, 1 or superior or equal to 550
+ Pruneduringinit must be -1, 0, 1 or superior or equal to 550
 
 Template: bitcoin-knots/pruneduringinit-fail
 Type: error

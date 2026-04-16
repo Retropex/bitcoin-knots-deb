@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bitcoin-knots\n"
 "Report-Msgid-Bugs-To: bitcoin-knots@packages.debian.org\n"
-"POT-Creation-Date: 2026-04-16 13:54+0200\n"
+"POT-Creation-Date: 2026-04-16 15:15+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -68,7 +68,7 @@ msgstr ""
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:4001
-msgid "Prune must be O, 1 or superior or equal to 550"
+msgid "Prune must be 0, 1 or superior or equal to 550"
 msgstr ""
 
 #. Type: boolean
@@ -148,7 +148,7 @@ msgstr ""
 #. Description
 #: ../bitcoin-knots.templates:10001
 msgid ""
-"the file /var/lib/bitcoin.conf is missing, debconf expect this file to  "
+"the file /etc/bitcoin/bitcoin.conf is missing, debconf expect this file to  "
 "interactively configure bitcoind."
 msgstr ""
 
@@ -175,7 +175,7 @@ msgstr ""
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:12001
-msgid "Pruneduringinit must be -1, O, 1 or superior or equal to 550"
+msgid "Pruneduringinit must be -1, 0, 1 or superior or equal to 550"
 msgstr ""
 
 #. Type: error
