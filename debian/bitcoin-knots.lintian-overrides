@@ -2,3 +2,6 @@
 bitcoin-knots: hardening-no-fortify-functions [usr/bin/bitcoin-cli]
 bitcoin-knots: hardening-no-fortify-functions [usr/bin/bitcoin-util]
 bitcoin-knots: spelling-error-in-binary
+
+# False positive, these templates are used dynamically in a function.
+bitcoin-knots: unused-debconf-template bitcoin-knots/*-fail [templates:*]
