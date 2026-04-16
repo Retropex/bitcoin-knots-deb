@@ -144,3 +144,89 @@ Type: error
 _Description: Couldn't configure blockmaxsize
  Couldn't configure the blockmaxsize setting as expected, 
  please set your value manually in /etc/bitcoin/bitcoin.conf
+
+Template: bitcoin-knots/blockmaxweight
+Type: string
+Default: 3985000
+_Description: Value for blockmaxweight:
+ Set maximum BIP141 block weight
+
+Template: bitcoin-knots/blockmaxweight-wrong
+Type: note
+_Description: Bad value for blockmaxweight
+ blockmaxweight must be between 0 and 3985000
+
+Template: bitcoin-knots/blockmaxweight-fail
+Type: error
+_Description: Couldn't configure blockmaxweight
+ Couldn't configure the blockmaxweight setting as expected, 
+ please set your value manually in /etc/bitcoin/bitcoin.conf
+
+Template: bitcoin-knots/maxmempool
+Type: string
+Default: 1000
+_Description: Value for maxmempool:
+ Keep the transaction memory pool below <n> megabytes
+
+Template: bitcoin-knots/maxmempool-wrong
+Type: note
+_Description: Bad value for maxmempool
+ maxmempool must be superior or equal to 5
+
+Template: bitcoin-knots/maxmempool-fail
+Type: error
+_Description: Couldn't configure maxmempool
+ Couldn't configure the maxmempool setting as expected, 
+ please set your value manually in /etc/bitcoin/bitcoin.conf
+
+Template: bitcoin-knots/blockreconstructionextratxn
+Type: string
+Default: 1000000
+_Description: Value for blockreconstructionextratxn:
+ Extra transactions to keep in memory for compact block reconstructions
+
+Template: bitcoin-knots/blockreconstructionextratxn-wrong
+Type: note
+_Description: Bad value for blockreconstructionextratxn
+ blockreconstructionextratxn must be superior or equal to 0
+
+Template: bitcoin-knots/blockreconstructionextratxn-fail
+Type: error
+_Description: Couldn't configure blockreconstructionextratxn
+ Couldn't configure the blockreconstructionextratxn setting as expected, 
+ please set your value manually in /etc/bitcoin/bitcoin.conf
+
+Template: bitcoin-knots/blockreconstructionextratxnsize
+Type: string
+Default: 100
+_Description: Value for blockreconstructionextratxnsize:
+ Upper limit of memory usage (in megabytes) for keeping extra
+ transactions in memory for compact block reconstructions
+
+Template: bitcoin-knots/blockreconstructionextratxnsize-wrong
+Type: note
+_Description: Bad value for blockreconstructionextratxnsize
+ blockreconstructionextratxnsize must be superior or equal to 0
+
+Template: bitcoin-knots/blockreconstructionextratxnsize-fail
+Type: error
+_Description: Couldn't configure blockreconstructionextratxnsize
+ Couldn't configure the blockreconstructionextratxnsize setting as expected, 
+ please set your value manually in /etc/bitcoin/bitcoin.conf
+
+Template: bitcoin-knots/maxorphantx
+Type: string
+Default: 50000
+_Description: Value for maxorphantx:
+ Keep at most <n> unconnectable transactions in memory
+
+Template: bitcoin-knots/maxorphantx-wrong
+Type: note
+_Description: Bad value for maxorphantx
+ maxorphantx must be superior or equal to 0
+
+Template: bitcoin-knots/maxorphantx-fail
+Type: error
+_Description: Couldn't configure maxorphantx
+ Couldn't configure the maxorphantx setting as expected, 
+ please set your value manually in /etc/bitcoin/bitcoin.conf

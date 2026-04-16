@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bitcoin-knots\n"
 "Report-Msgid-Bugs-To: bitcoin-knots@packages.debian.org\n"
-"POT-Creation-Date: 2026-04-16 15:46+0200\n"
+"POT-Creation-Date: 2026-04-16 16:58+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Léo Haf <leo@haf.ovh>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -309,7 +309,9 @@ msgstr "Valeur pour blockprioritysize:"
 #. Description
 #: ../bitcoin-knots.templates:20001
 msgid "Set maximum size of high-priority/low-fee transactions in bytes"
-msgstr "Définit la taille maximale des transactions prioritaires/à faibles frais en octets"
+msgstr ""
+"Définit la taille maximale des transactions prioritaires/à faibles frais en "
+"octets"
 
 #. Type: note
 #. Description
@@ -336,8 +338,8 @@ msgid ""
 "Couldn't configure the blockprioritysize setting as expected,  please set "
 "your value manually in /etc/bitcoin/bitcoin.conf"
 msgstr ""
-"Impossible de configurer le paramètre blockprioritysize comme prévu.  Veuillez "
-"définir manuellement la valeur dans /etc/bitcoin/bitcoin.conf"
+"Impossible de configurer le paramètre blockprioritysize comme prévu.  "
+"Veuillez définir manuellement la valeur dans /etc/bitcoin/bitcoin.conf"
 
 #. Type: string
 #. Description
@@ -376,5 +378,216 @@ msgid ""
 "Couldn't configure the blockmaxsize setting as expected,  please set your "
 "value manually in /etc/bitcoin/bitcoin.conf"
 msgstr ""
-"Impossible de configurer le paramètre blockmaxsize comme prévu.  Veuillez définir "
-"manuellement la valeur dans /etc/bitcoin/bitcoin.conf"
+"Impossible de configurer le paramètre blockmaxsize comme prévu.  Veuillez "
+"définir manuellement la valeur dans /etc/bitcoin/bitcoin.conf"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:26001
+msgid "Value for blockmaxweight:"
+msgstr "Valeur pour blockmaxweight:"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:26001
+msgid "Set maximum BIP141 block weight"
+msgstr "Définit le poids BIP141 maximal des blocs"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:27001
+msgid "Bad value for blockmaxweight"
+msgstr "Mauvaise valeur pour blockmaxweight"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:27001
+msgid "blockmaxweight must be between 0 and 3985000"
+msgstr "blockmaxweight doit être entre 0 et 3985000"
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:28001
+msgid "Couldn't configure blockmaxweight"
+msgstr "Impossible de configurer blockmaxweight"
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:28001
+msgid ""
+"Couldn't configure the blockmaxweight setting as expected,  please set your "
+"value manually in /etc/bitcoin/bitcoin.conf"
+msgstr ""
+"Impossible de configurer le paramètre blockmaxweight comme prévu.  Veuillez "
+"définir manuellement la valeur dans /etc/bitcoin/bitcoin.conf"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:29001
+msgid "Value for maxmempool:"
+msgstr "Valeur pour maxmempool:"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:29001
+msgid "Keep the transaction memory pool below <n> megabytes"
+msgstr ""
+"Maintien la taille du pool de mémoire transactionnelle en dessous de <n> "
+"mégaoctets"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:30001
+msgid "Bad value for maxmempool"
+msgstr "Mauvaise valeur pour maxmempool"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:30001
+msgid "maxmempool must be superior or equal to 5"
+msgstr "maxmempool doit être supérieur ou égale à 5"
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:31001
+msgid "Couldn't configure maxmempool"
+msgstr "Impossible de configurer maxmempool"
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:31001
+msgid ""
+"Couldn't configure the maxmempool setting as expected,  please set your "
+"value manually in /etc/bitcoin/bitcoin.conf"
+msgstr ""
+"Impossible de configurer le paramètre maxmempool comme prévu.  Veuillez "
+"définir manuellement la valeur dans /etc/bitcoin/bitcoin.conf"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:32001
+msgid "Value for blockreconstructionextratxn:"
+msgstr "Valeur pour blockreconstructionextratxn:"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:32001
+msgid "Extra transactions to keep in memory for compact block reconstructions"
+msgstr ""
+"Transactions supplémentaires à conserver en mémoire pour les reconstructions "
+"de blocs compact"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:33001
+msgid "Bad value for blockreconstructionextratxn"
+msgstr "Mauvaise valeur pour blockreconstructionextratxn"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:33001
+msgid "blockreconstructionextratxn must be superior or equal to 0"
+msgstr "blockreconstructionextratxn doit être supérieur ou égale à 0"
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:34001
+msgid "Couldn't configure blockreconstructionextratxn"
+msgstr "Impossible de configurer blockreconstructionextratxn"
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:34001
+msgid ""
+"Couldn't configure the blockreconstructionextratxn setting as expected,  "
+"please set your value manually in /etc/bitcoin/bitcoin.conf"
+msgstr ""
+"Impossible de configurer le paramètre blockreconstructionextratxn comme "
+"prévu.  Veuillez définir manuellement la valeur dans /etc/bitcoin/"
+"bitcoin.conf"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:35001
+msgid "Value for blockreconstructionextratxnsize:"
+msgstr "Valeur pour blockreconstructionextratxnsize:"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:35001
+msgid ""
+"Upper limit of memory usage (in megabytes) for keeping extra transactions in "
+"memory for compact block reconstructions"
+msgstr ""
+"Limite d'utilisation de la mémoire (en mégaoctets) pour la conservation des "
+"transactions supplémentaires en mémoire en vue de la reconstructions des "
+"blocs compact"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:36001
+msgid "Bad value for blockreconstructionextratxnsize"
+msgstr "Mauvaise valeur pour blockreconstructionextratxnsize"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:36001
+msgid "blockreconstructionextratxnsize must be superior or equal to 0"
+msgstr "blockreconstructionextratxnsize doit être supérieur ou égale à 0"
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:37001
+msgid "Couldn't configure blockreconstructionextratxnsize"
+msgstr "Impossible de configurer blockreconstructionextratxnsize"
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:37001
+msgid ""
+"Couldn't configure the blockreconstructionextratxnsize setting as expected,  "
+"please set your value manually in /etc/bitcoin/bitcoin.conf"
+msgstr ""
+"Impossible de configurer le paramètre blockreconstructionextratxnsize comme "
+"prévu.  Veuillez définir manuellement la valeur dans /etc/bitcoin/"
+"bitcoin.conf"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:38001
+msgid "Value for maxorphantx:"
+msgstr "Valeur pour maxorphantx:"
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:38001
+msgid "Keep at most <n> unconnectable transactions in memory"
+msgstr "Conserver au maximum <n> transactions non connectables en mémoire"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:39001
+msgid "Bad value for maxorphantx"
+msgstr "Mauvaise valeur pour maxorphantx"
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:39001
+msgid "maxorphantx must be superior or equal to 0"
+msgstr "maxorphantx doit être supérieur ou égale à 0"
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:40001
+msgid "Couldn't configure maxorphantx"
+msgstr "Impossible de configurer maxorphantx"
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:40001
+msgid ""
+"Couldn't configure the maxorphantx setting as expected,  please set your "
+"value manually in /etc/bitcoin/bitcoin.conf"
+msgstr ""
+"Impossible de configurer le paramètre maxorphantx comme prévu.  Veuillez "
+"définir manuellement la valeur dans /etc/bitcoin/bitcoin.conf"

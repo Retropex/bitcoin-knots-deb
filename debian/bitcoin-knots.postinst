@@ -148,6 +148,61 @@ case "$1" in
       fi
     fi
     unset RET
+    
+    db_get bitcoin-knots/blockmaxweight || RET=
+    if [ "$RET" ]; then
+      if grep -s -q -E '^#?blockmaxweight=' /etc/bitcoin/bitcoin.conf; then
+        sed -i -E "/^#?blockmaxweight=/c\blockmaxweight=$RET" /etc/bitcoin/bitcoin.conf
+      else
+        db_input high bitcoin-knots/blockmaxweight-fail || true
+        db_go || true
+      fi
+    fi
+    unset RET
+    
+    db_get bitcoin-knots/maxmempool || RET=
+    if [ "$RET" ]; then
+      if grep -s -q -E '^#?maxmempool=' /etc/bitcoin/bitcoin.conf; then
+        sed -i -E "/^#?maxmempool=/c\maxmempool=$RET" /etc/bitcoin/bitcoin.conf
+      else
+        db_input high bitcoin-knots/maxmempool-fail || true
+        db_go || true
+      fi
+    fi
+    unset RET
+    
+    db_get bitcoin-knots/blockreconstructionextratxn || RET=
+    if [ "$RET" ]; then
+      if grep -s -q -E '^#?blockreconstructionextratxn=' /etc/bitcoin/bitcoin.conf; then
+        sed -i -E "/^#?blockreconstructionextratxn=/c\blockreconstructionextratxn=$RET" /etc/bitcoin/bitcoin.conf
+      else
+        db_input high bitcoin-knots/blockreconstructionextratxn-fail || true
+        db_go || true
+      fi
+    fi
+    unset RET
+    
+    db_get bitcoin-knots/blockreconstructionextratxnsize || RET=
+    if [ "$RET" ]; then
+      if grep -s -q -E '^#?blockreconstructionextratxnsize=' /etc/bitcoin/bitcoin.conf; then
+        sed -i -E "/^#?blockreconstructionextratxnsize=/c\blockreconstructionextratxnsize=$RET" /etc/bitcoin/bitcoin.conf
+      else
+        db_input high bitcoin-knots/blockreconstructionextratxnsize-fail || true
+        db_go || true
+      fi
+    fi
+    unset RET
+    
+    db_get bitcoin-knots/maxorphantx || RET=
+    if [ "$RET" ]; then
+      if grep -s -q -E '^#?maxorphantx=' /etc/bitcoin/bitcoin.conf; then
+        sed -i -E "/^#?maxorphantx=/c\maxorphantx=$RET" /etc/bitcoin/bitcoin.conf
+      else
+        db_input high bitcoin-knots/maxorphantx-fail || true
+        db_go || true
+      fi
+    fi
+    unset RET
   fi
   unset RET
   
