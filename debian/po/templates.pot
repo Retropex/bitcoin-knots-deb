@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bitcoin-knots\n"
 "Report-Msgid-Bugs-To: bitcoin-knots@packages.debian.org\n"
-"POT-Creation-Date: 2026-04-16 16:58+0200\n"
+"POT-Creation-Date: 2026-04-17 11:11+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -533,5 +533,44 @@ msgstr ""
 #: ../bitcoin-knots.templates:40001
 msgid ""
 "Couldn't configure the maxorphantx setting as expected,  please set your "
+"value manually in /etc/bitcoin/bitcoin.conf"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:41001
+msgid "Value for datacarriersize:"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../bitcoin-knots.templates:41001
+msgid ""
+"Maximum size of data in data carrier transactions to relay and mine, in bytes"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:42001
+msgid "Bad value for datacarriersize"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../bitcoin-knots.templates:42001
+msgid "datacarriersize must be superior or equal to 0"
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:43001
+msgid "Couldn't configure datacarriersize"
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../bitcoin-knots.templates:43001
+msgid ""
+"Couldn't configure the datacarriersize setting as expected,  please set your "
 "value manually in /etc/bitcoin/bitcoin.conf"
 msgstr ""

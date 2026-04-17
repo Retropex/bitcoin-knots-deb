@@ -108,6 +108,7 @@ case "$1" in
     fi
     unset RET
     
+    update_conf_param datacarriersize
     update_conf_param dbcache
     update_conf_param rpcthreads
     update_conf_param rpcworkqueue

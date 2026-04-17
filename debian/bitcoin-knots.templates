@@ -230,3 +230,20 @@ Type: error
 _Description: Couldn't configure maxorphantx
  Couldn't configure the maxorphantx setting as expected, 
  please set your value manually in /etc/bitcoin/bitcoin.conf
+
+Template: bitcoin-knots/datacarriersize
+Type: string
+Default: 42
+_Description: Value for datacarriersize:
+ Maximum size of data in data carrier transactions to relay and mine, in bytes
+
+Template: bitcoin-knots/datacarriersize-wrong
+Type: note
+_Description: Bad value for datacarriersize
+ datacarriersize must be superior or equal to 0
+
+Template: bitcoin-knots/datacarriersize-fail
+Type: error
+_Description: Couldn't configure datacarriersize
+ Couldn't configure the datacarriersize setting as expected, 
+ please set your value manually in /etc/bitcoin/bitcoin.conf
