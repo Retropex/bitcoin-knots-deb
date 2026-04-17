@@ -4,3 +4,4 @@ usr/bin/bitcoin-util
 usr/bin/bitcoin-wallet
 usr/bin/bitcoind
 share/examples/bitcoin.conf /etc/bitcoin/
+debian/bitcoin-knots.sh /etc/profile.d/
