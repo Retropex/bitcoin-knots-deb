@@ -1,3 +1,12 @@
+bitcoin-knots (29.3.knots20260210-3) unstable; urgency=medium
+
+  * Add support for sysVinit service file
+  * No longer enable txindex by default
+  * Can now be configured with debconf
+  * Add an alias for bitcoin-cli
+
+ -- Léo Haf <leo@haf.ovh>  Thu, 23 Apr 2026 15:24:41 +0200
+
 bitcoin-knots (29.3.knots20260210-2) unstable; urgency=medium
 
   * Disable RISC-V tests
