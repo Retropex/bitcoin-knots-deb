@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2013 Léo Haf <leo@haf.ovh> -->
+<component type="desktop-application">
+  <id>org.bitcoinknots.bitcoin_knots_gui</id>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <content_rating type="oars-1.0" />
+  <name>Bitcoin Knots</name>
+  <summary>A Bitcoin node with graphical interface</summary>
+
+  <description>
+    <p>
+      Bitcoin Knots is a Bitcoin client and it builds the backbone of the 
+      network. It downloads and, by default, stores the entire history of 
+      Bitcoin transactions
+    </p>
+  </description>
+
+  <launchable type="desktop-id">bitcoin-knots-gui.desktop</launchable>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Preview</caption>
+      <image>https://bitcoinknots.org/images/app-preview-27.1.png</image>
+    </screenshot>
+  </screenshots>
+
+  <url type="homepage">https://bitcoinknots.org</url>
+  <project_group>bitcoin</project_group>
+
+  <provides>
+    <binary>bitcoin-qt</binary>
+  </provides>
+
+  <releases>
+    <release version="29.3.knots20260210" date="2026-02-10">
+      <url>https://github.com/bitcoinknots/bitcoin/releases/tag/v29.3.knots20260210</url>
+      <description>
+        <p>See release notes on GitHub.</p>
+      </description>
+    </release>
+  </releases>
+
+  <developer id="org.bitcoinknots">
+    <name>The Bitcoin Knots developers</name>
+  </developer>
+
+</component>
