@@ -119,6 +119,10 @@ case "$1" in
     update_conf_param blockreconstructionextratxn
     update_conf_param blockreconstructionextratxnsize
     update_conf_param maxorphantx
+  else
+    db_input high bitcoin-knots/bitcoinconf || true
+    db_go || true
+    exit 1
   fi
   
   db_stop
