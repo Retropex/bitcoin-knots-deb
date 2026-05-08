@@ -1,3 +1,10 @@
+bitcoin-knots (29.3.knots20260210-4) unstable; urgency=medium
+
+  * Move the bitcoin.conf file check to postinst
+  * Add metainfo file
+
+ -- Léo Haf <leo@haf.ovh>  Fri, 08 May 2026 10:46:27 +0200
+
 bitcoin-knots (29.3.knots20260210-3) unstable; urgency=medium
 
   * Add support for sysVinit service file
