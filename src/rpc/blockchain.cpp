@@ -615,7 +615,7 @@ static RPCHelpMan sweepprivkeys()
     // Parse options
     std::set<CScript> needles;
     wallet::CCoinControl coin_control;
-    FillableSigningProvider temp_keystore;
+    FlatSigningProvider temp_keystore;
     CMutableTransaction tx;
     std::string label;
     CAmount total_in = 0;
@@ -631,7 +631,8 @@ static RPCHelpMan sweepprivkeys()
                 CPubKey pubkey = key.GetPubKey();
                 CHECK_NONFATAL(key.VerifyPubKey(pubkey));
 
-                temp_keystore.AddKey(key);
+                temp_keystore.keys[pubkey.GetID()] = key;
+                temp_keystore.pubkeys[pubkey.GetID()] = pubkey;
                 CKeyID address = pubkey.GetID();
                 CScript script = GetScriptForDestination(PKHash(address));
                 if (!script.empty()) {
@@ -640,6 +641,25 @@ static RPCHelpMan sweepprivkeys()
                 script = GetScriptForRawPubKey(pubkey);
                 if (!script.empty()) {
                     needles.insert(script);
+                }
+                if (pubkey.IsCompressed()) {
+                    CScript p2wpkh_script = GetScriptForDestination(WitnessV0KeyHash(pubkey));
+                    if (!p2wpkh_script.empty()) {
+                        needles.insert(p2wpkh_script);
+                    }
+                    script = GetScriptForDestination(ScriptHash(p2wpkh_script));
+                    if (!script.empty()) {
+                        needles.insert(script);
+                        temp_keystore.scripts[CScriptID(p2wpkh_script)] = p2wpkh_script;
+                    }
+                    auto tap_tweak = XOnlyPubKey(pubkey).CreateTapTweak(nullptr);
+                    if (tap_tweak) {
+                        WitnessV1Taproot output_key{tap_tweak->first};
+                        needles.insert(GetScriptForDestination(output_key));
+                        TaprootBuilder builder;
+                        builder.Finalize(XOnlyPubKey(pubkey));
+                        temp_keystore.tr_trees[output_key] = builder;
+                    }
                 }
             }
         } else if (optname == "label") {
@@ -710,10 +730,12 @@ static RPCHelpMan sweepprivkeys()
         if (IsDust(tx.vout[0], pwallet->chain().relayDustFee())) {
             throw JSONRPCError(RPC_VERIFY_REJECTED, "Swept value would be dust");
         }
+        PrecomputedTransactionData txdata;
+        txdata.Init(tx, std::vector<CTxOut>(input_txos.begin(), input_txos.end()), true);
         for (size_t input_index = 0; input_index < tx.vin.size(); ++input_index) {
             const auto& utxo = input_txos[input_index];
             SignatureData sig_data;
-            MutableTransactionSignatureCreator creator(tx, input_index, utxo.nValue, SIGHASH_ALL);
+            MutableTransactionSignatureCreator creator(tx, input_index, utxo.nValue, &txdata, SIGHASH_ALL);
             if (!ProduceSignature(temp_keystore, creator, utxo.scriptPubKey, sig_data)) {
                 throw JSONRPCError(RPC_MISC_ERROR, "Failed to sign");
             }
@@ -886,7 +908,9 @@ static CBlockUndo GetUndoChecked(BlockManager& blockman, const CBlockIndex& bloc
     return blockUndo;
 }
 
-const RPCResult getblock_vin{
+const RPCResult& GetBlockVin()
+{
+    static const RPCResult getblock_vin{
     RPCResult::Type::ARR, "vin", "",
     {
         {RPCResult::Type::OBJ, "", "",
@@ -909,6 +933,8 @@ const RPCResult getblock_vin{
         }},
     }
 };
+    return getblock_vin;
+}
 
 static RPCHelpMan getblock()
 {
@@ -959,7 +985,7 @@ static RPCHelpMan getblock()
                         {RPCResult::Type::OBJ, "", "",
                         {
                             {RPCResult::Type::ELISION, "", "The transactions in the format of the getrawtransaction RPC. Different from verbosity = 1 \"tx\" result"},
-                            {RPCResult::Type::NUM, "fee", "The transaction fee in " + CURRENCY_UNIT + ", omitted if block undo data is not available"},
+                            {RPCResult::Type::NUM, "fee", /*optional=*/true, "The transaction fee in " + CURRENCY_UNIT + ", omitted if block undo data is not available"},
                         }},
                     }},
                 }},
@@ -971,7 +997,7 @@ static RPCHelpMan getblock()
                     {
                         {RPCResult::Type::OBJ, "", "",
                         {
-                            getblock_vin,
+                            GetBlockVin(),
                         }},
                     }},
                 }},

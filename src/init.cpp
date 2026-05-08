@@ -35,6 +35,7 @@
 #include <interfaces/ipc.h>
 #include <interfaces/mining.h>
 #include <interfaces/node.h>
+#include <ipc/exception.h>
 #include <kernel/caches.h>
 #include <kernel/context.h>
 #include <kernel/warning.h>
@@ -49,6 +50,7 @@
 #include <node/blockmanager_args.h>
 #include <node/blockstorage.h>
 #include <node/caches.h>
+#include <node/dbcache.h>
 #include <node/chainstate.h>
 #include <node/chainstatemanager_args.h>
 #include <node/context.h>
@@ -313,6 +315,14 @@ void Shutdown(NodeContext& node)
     for (const auto& client : node.chain_clients) {
         client->flush();
     }
+    for (auto& client : node.chain_clients) {
+        try {
+            client->stop();
+        } catch (const ipc::Exception& e) {
+            LogDebug(BCLog::IPC, "Chain client did not disconnect cleanly: %s", e.what());
+            client.reset();
+        }
+    }
     StopMapPort();
 
     // Because these depend on each-other, we make sure that neither can be
@@ -384,9 +394,6 @@ void Shutdown(NodeContext& node)
                 chainstate->ResetCoinsViews();
             }
         }
-    }
-    for (const auto& client : node.chain_clients) {
-        client->stop();
     }
 
 #ifdef ENABLE_ZMQ
@@ -508,7 +515,7 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     argsman.AddArg("-corepolicy", strprintf("Use Bitcoin Core policy defaults (default: %u)", DEFAULT_COREPOLICY), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-datadir=<dir>", "Specify data directory", ArgsManager::ALLOW_ANY | ArgsManager::DISALLOW_NEGATION, OptionsCategory::OPTIONS);
     argsman.AddArg("-dbbatchsize", strprintf("Maximum database write batch size in bytes (default: %u)", nDefaultDbBatchSize), ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::OPTIONS);
-    argsman.AddArg("-dbcache=<n>", strprintf("Maximum database cache size <n> MiB (minimum %d, default: %d). Make sure you have enough RAM. In addition, unused memory allocated to the mempool is shared with this cache (see -maxmempool).", MIN_DB_CACHE >> 20, DEFAULT_DB_CACHE >> 20), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
+    argsman.AddArg("-dbcache=<n>", strprintf("Maximum database cache size <n> MiB (minimum %s, default is platform dependent, between %s and %s). Make sure you have enough RAM. In addition, unused memory allocated to the mempool is shared with this cache (see -maxmempool).", MIN_DBCACHE_BYTES / 1_MiB, MIN_DEFAULT_DBCACHE / 1_MiB, MAX_DEFAULT_DBCACHE / 1_MiB), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-dbfilesize",
                    strprintf("Target size of files within databases, in MiB (%u to %u, default: %u).",
                              1, 1024,
@@ -532,7 +539,7 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
                    ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-pid=<file>", strprintf("Specify pid file. Relative paths will be prefixed by a net-specific datadir location. (default: %s)", BITCOIN_PID_FILENAME), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-prune=<n>", strprintf("Reduce storage requirements by enabling pruning (deleting) of old blocks. This allows the pruneblockchain RPC to be called to delete specific blocks and enables automatic pruning of old blocks if a target size in MiB is provided. This mode is incompatible with -txindex. "
-            "Warning: Reverting this setting requires re-downloading the entire blockchain. "
+            "Warning: Reverting this setting requires re-downloading the entire blockchain. Wallets and indexes should be loaded at startup and kept active while pruning is enabled so they stay synchronized before old block data is deleted; wallets or indexes that fall behind pruned data may require a reindex. "
             "(default: 0 = disable pruning blocks, 1 = allow manual pruning via RPC, >=%u = automatically prune block files to stay under the specified target size in MiB)", MIN_DISK_SPACE_FOR_BLOCK_FILES / 1024 / 1024), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-pruneduringinit=<n>", "Temporarily adjusts the -prune setting until initial sync completes."
         " Ignored if pruning is disabled."
@@ -693,6 +700,7 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     argsman.AddArg("-uaspoof=<ua>", strprintf("Replace entire user agent string with custom identifier (should be formatted '%s' as specified in BIP 14)", BIP14_EXAMPLE_UA), ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::CONNECTION);
 
     SetupChainParamsBaseOptions(argsman);
+    argsman.AddArg("-consensusrules=<rules>", "Enforce the specified consensus rules (default: none).", ArgsManager::ALLOW_ANY, OptionsCategory::CHAINPARAMS);
 
     argsman.AddArg("-acceptnonstddatacarrier",
                    strprintf("Relay and mine non-OP_RETURN datacarrier injection (default: %u)",
@@ -758,6 +766,10 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     argsman.AddArg("-rejecttokens",
                    strprintf("Refuse to relay or mine transactions involving non-bitcoin tokens (default: %u)",
                              DEFAULT_REJECT_TOKENS),
+                   ArgsManager::ALLOW_ANY, OptionsCategory::NODE_RELAY);
+    argsman.AddArg("-subdustfeepenalty",
+                   strprintf("Reduce effective fee by the dust threshold for each sub-dust output, making dust-creating transactions require higher fees (default: %u)",
+                             DEFAULT_SUBDUSTFEEPENALTY),
                    ArgsManager::ALLOW_ANY, OptionsCategory::NODE_RELAY);
     argsman.AddArg("-spkreuse=<policy>", strprintf("Either \"allow\" to relay/mine transactions reusing addresses or other pubkey scripts, or \"conflict\" to treat them as exclusive prior to being mined (default: %s)", DEFAULT_SPKREUSE), ArgsManager::ALLOW_ANY, OptionsCategory::NODE_RELAY);
     argsman.AddArg("-whitelistforcerelay", strprintf("Add 'forcerelay' permission to whitelisted peers with default permissions. This will relay transactions even if the transactions were already in the mempool. (default: %d)", DEFAULT_WHITELISTFORCERELAY), ArgsManager::ALLOW_ANY, OptionsCategory::NODE_RELAY);
@@ -858,6 +870,7 @@ void InitParameterInteraction(ArgsManager& args)
         args.SoftSetArg("-permitbarepubkey", "1");
         args.SoftSetArg("-permitbaremultisig", "1");
         args.SoftSetArg("-rejectparasites", "0");
+        args.SoftSetArg("-subdustfeepenalty", "0");
         args.SoftSetArg("-datacarriercost", "0.25");
         args.SoftSetArg("-datacarrierfullcount", "0");
         args.SoftSetArg("-maxtxlegacysigops", strprintf("%s", std::numeric_limits<unsigned int>::max()));
@@ -1461,7 +1474,7 @@ static ChainstateLoadResult InitAndLoadChainstate(
     LogPrintf("* Using %.1f MiB for in-memory UTXO set (plus up to %.1f MiB of unused mempool space)\n", cache_sizes.coins * (1.0 / 1024 / 1024), mempool_opts.max_size_bytes * (1.0 / 1024 / 1024));
 
     if (gArgs.IsArgSet("-lowmem")) {
-        g_low_memory_threshold = gArgs.GetIntArg("-lowmem", 0 /* not used */) * 1024 * 1024;
+        g_low_memory_threshold = std::max(int64_t{0}, gArgs.GetIntArg("-lowmem", 0 /* not used */)) * 1024 * 1024;
     }
     if (g_low_memory_threshold > 0) {
         LogPrintf("* Flushing caches if available system memory drops below %s MiB\n", g_low_memory_threshold / 1024 / 1024);
@@ -1558,6 +1571,71 @@ static ChainstateLoadResult InitAndLoadChainstate(
     return {status, error};
 };
 
+bool UserProtocolRulesCheck()
+{
+    const auto rules_requested{gArgs.GetArgs(CONSENSUSRULES_CONFIG_NAME)};
+    if (rules_requested.empty()) {
+        return true;
+    }
+    return InitError(strprintf(_("Unknown rule specified in -%s: %s"), CONSENSUSRULES_CONFIG_NAME, rules_requested.front()));
+}
+
+bool UserProtocolRulesConsent()
+{
+    static const std::string CONSENSUSRULES_MISSING{"rdts"};
+    bool require_rdts{false};
+    for (const auto& rulesok : gArgs.GetArgs(CONSENSUSRULES_CONFIG_NAME)) {
+        if (rulesok == CONSENSUSRULES_MISSING) {
+            LogPrintf("User already consented to '%s' consensus rules\n", CONSENSUSRULES_MISSING);
+            require_rdts = true;
+            break;
+        }
+    }
+
+    bilingual_str msg = strprintf(_(
+        "Upcoming BIP110/RDTS Network Upgrade\n"
+        "\n"
+        "This version of %s does not support the upcoming BIP110 (RDTS) network upgrade, "
+        "which fixes critical vulnerabilities in long-standing network design.\n"
+        "\n"
+        "Important: "
+        "Because this upgrade already has broad community support, "
+        "continuing to run older versions (such as this version) does not reject it. "
+        "Running outdated software after any network upgrade only leaves your node vulnerable to displaying fake or fraudulent transactions. "
+        "To effectively reject this upgrade, you need to run alternative software designed to split away from the upgraded network.\n"
+        "\n"
+        "To adopt this upgrade and remain secure, please update %s: %s\n"
+        "\n"
+        "For more information, see: %s"
+    ),
+        CLIENT_NAME,
+        CLIENT_NAME,
+        CLIENT_URL,
+        "https://bitcoinknots.org/learn/2026-rdts");
+    if (require_rdts) {
+        const bilingual_str msg_config_suffix = strprintf(_(
+            "Note: "
+            "The %s flag was found in your configuration. "
+            "This outdated version cannot support the RDTS upgrade and will not start with this flag present. "
+            "Please update %s to adopt this upgrade. "
+            "You should remove this flag only if you intentionally wish to leave your node vulnerable."
+        ),
+            CONSENSUSRULES_CONFIG_NAME + "=" + CONSENSUSRULES_MISSING,
+            CLIENT_NAME);
+        msg += Untranslated("\n\n") + msg_config_suffix;
+    }
+
+    const bool consent = uiInterface.ThreadSafeQuestion(
+        _("Warning:") + Untranslated(" ") + msg,
+        msg.original
+        , "Warning",
+        require_rdts
+            ? (CClientUIInterface::ICON_WARNING | CClientUIInterface::BTN_ABORT | CClientUIInterface::MODAL)
+            : (CClientUIInterface::MSG_WARNING | CClientUIInterface::BTN_ABORT | CClientUIInterface::DEFAULT_TRUE));
+
+    return consent;
+}
+
 bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 {
     const ArgsManager& args = *Assert(node.args);
@@ -1631,6 +1709,20 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     // when load() and start() interface methods are called below.
     g_wallet_init_interface.Construct(node);
     uiInterface.InitWallet();
+
+    if (!(chainparams.IsTestChain() || UserProtocolRulesConsent())) {
+        return false;
+    }
+
+    if (!UserProtocolRulesCheck()) {
+        return false;
+    }
+
+    scheduler.scheduleEvery([]{
+        LogError("This version does not support the upcoming BIP110/RDTS network upgrade, and is therefore vulnerable to displaying fake or fraudulent transactions.\n");
+        LogError("For more information, see: %s\n", "https://bitcoinknots.org/learn/2026-rdts");
+        LogError("To adopt this upgrade and remain secure, please update %s: %s\n", CLIENT_NAME, CLIENT_URL);
+    }, std::chrono::hours{1});
 
     if (interfaces::Ipc* ipc = node.init->ipc()) {
         for (std::string address : gArgs.GetArgs("-ipcbind")) {
@@ -1953,6 +2045,11 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     // ********************************************************* Step 7: load block chain
 
     // cache size calculations
+    if (args.GetIntArg("-dbcache")) {
+        node::LogOversizedDbCache(args);
+    } else {
+        node::LogAutoDbCacheSettings();
+    }
     const auto [index_cache_sizes, kernel_cache_sizes] = CalculateCacheSizes(args, g_enabled_filter_types.size());
 
     LogInfo("Cache configuration:");
@@ -2437,6 +2534,8 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         banman->DumpBanlist();
     }, DUMP_BANS_INTERVAL);
 
+    banman->SetScheduler(scheduler);
+
     if (node.peerman) node.peerman->StartScheduledTasks(scheduler);
 
 #if HAVE_SYSTEM
@@ -2459,7 +2558,7 @@ bool StartIndexBackgroundSync(NodeContext& node)
     // starting from that point up to the current tip.
     // indexes_start_block='nullptr' means "start from height 0".
     std::optional<const CBlockIndex*> indexes_start_block;
-    std::string older_index_name;
+    BaseIndex* older_index{nullptr};
     ChainstateManager& chainman = *Assert(node.chainman);
     const Chainstate& chainstate = WITH_LOCK(::cs_main, return chainman.GetChainstateForIndexing());
     const CChain& index_chain = chainstate.m_chain;
@@ -2477,7 +2576,7 @@ bool StartIndexBackgroundSync(NodeContext& node)
 
         if (!indexes_start_block || !pindex || pindex->nHeight < indexes_start_block.value()->nHeight) {
             indexes_start_block = pindex;
-            older_index_name = summary.name;
+            older_index = index;
             if (!pindex) break; // Starting from genesis so no need to look for earlier block.
         }
     };
@@ -2488,7 +2587,9 @@ bool StartIndexBackgroundSync(NodeContext& node)
         const CBlockIndex* start_block = *indexes_start_block;
         if (!start_block) start_block = chainman.ActiveChain().Genesis();
         if (!chainman.m_blockman.CheckBlockDataAvailability(*index_chain.Tip(), *Assert(start_block))) {
-            return InitError(Untranslated(strprintf("%s best block of the index goes beyond pruned data. Please disable the index or reindex (which will download the whole blockchain again)", older_index_name)));
+            return InitError(strprintf(
+                _("Index \"%s\" needs block data that has been pruned.\nRestart with -reindex to rebuild (re-downloading the entire blockchain), or %s to disable."),
+                older_index->GetName(), older_index->GetDisableAction()));
         }
     }
 

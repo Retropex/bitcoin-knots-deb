@@ -34,7 +34,7 @@ set(CLIENT_VERSION_RC 0)
 set(CLIENT_VERSION_IS_RELEASE "true")
 set(COPYRIGHT_YEAR "2026")
 
-set(CLIENT_VERSION_SUFFIX ".knots20260210")
+set(CLIENT_VERSION_SUFFIX ".knots20260507")
 
 # During the enabling of the CXX and CXXOBJ languages, we modify
 # CMake's compiler/linker invocation strings by appending the content
@@ -114,6 +114,8 @@ option(WITH_SYSTEM_LEVELDB "Build with system LevelDB instead of embedded fork."
 mark_as_advanced(WITH_SYSTEM_LEVELDB)
 if(WITH_SYSTEM_LEVELDB)
   find_package(LevelDB MODULE REQUIRED)
+else()
+  set(EMBEDDED_LEVELDB TRUE)
 endif()  # WITH_SYSTEM_LEVELDB
 
 option(WITH_SYSTEM_LIBSECP256K1 "Build with system libsecp256k1 instead of embedded copy." OFF)
@@ -239,7 +241,6 @@ if(BUILD_GUI)
     set(USE_DBUS TRUE)
   endif()
   if(WITH_TASKBAR_PROGRESS)
-    list(APPEND qt_components WinExtras)
     set(BITCOIN_QT_WIN_TASKBAR TRUE)
   endif()
   if(BUILD_GUI_TESTS)
@@ -313,6 +314,17 @@ if(BUILD_FOR_FUZZING)
   )
 endif()
 
+if(DEFINED CACHE{RDTS_CONSENT})
+  message(FATAL_ERROR
+    "RDTS_CONSENT is set, but this version does not support RDTS.\n"
+    "You are attempting to configure BIP110 (RDTS) consent, but this source code is too old to support the RDTS network upgrade, which fixes critical vulnerabilities in long-standing network design.\n"
+    "Important: Because this upgrade already has broad community support, continuing to run older versions (such as this version) does not reject it. Running outdated software after any network upgrade only leaves your node vulnerable to displaying fake or fraudulent transactions. To effectively reject this upgrade, you need to run alternative software designed to split away from the upgraded network.\n"
+    "If you intend to build a node that supports this upgrade, please update your source code to a newer version: https://bitcoinknots.org\n"
+    "If you intentionally wish to build this older version, you can replace -D RDTS_CONSENT=... with -U RDTS_CONSENT in your CMake options.\n"
+    "For more information, see: https://bitcoinknots.org/learn/2026-rdts"
+  )
+endif()
+
 # The external_lib_interface interface library aims to encapsulate build flags, which
 # are specific to non-internal libraries.
 # It is intended to be a usage requirement for non-internal library
@@ -322,7 +334,10 @@ add_library(external_lib_interface INTERFACE)
 include(TryAppendCXXFlags)
 include(TryAppendLinkerFlag)
 
+# Sanitizers require leaving undefined symbols in the library
+if(NOT SANITIZERS)
 try_append_linker_flag("-Wl,--no-undefined" TARGET external_lib_interface)
+endif()
 
 # Redefine/adjust per-configuration flags.
 target_compile_definitions(core_interface_debug INTERFACE

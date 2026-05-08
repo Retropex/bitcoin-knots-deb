@@ -58,6 +58,7 @@
 #include <util/ioprio.h>
 #include <util/mempressure.h>
 #include <util/moneystr.h>
+#include <util/overflow.h>
 #include <util/rbf.h>
 #include <util/result.h>
 #include <util/signalinterrupt.h>
@@ -1079,6 +1080,23 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     ws.m_modified_fees = ws.m_tx_handle->GetModifiedFee();
 
     ws.m_vsize = ws.m_tx_handle->GetTxSize();
+
+    // Reduce effective fee by dust threshold for each sub-dust output
+    if (m_pool.m_opts.subdustfeepenalty) {
+        CAmount dust_penalty{0};
+        for (const auto& txout : tx.vout) {
+            const CAmount dust_threshold = GetDustThreshold(txout, m_pool.m_opts.dust_relay_feerate);
+            if (txout.nValue < dust_threshold) {
+                dust_penalty = SaturatingAdd(dust_penalty, dust_threshold - txout.nValue);
+            }
+        }
+        if (dust_penalty > 0) {
+            m_subpackage.m_changeset->m_to_add.modify(ws.m_tx_handle, [&](CTxMemPoolEntry& e) {
+                e.UpdateModifiedFee(-dust_penalty);
+            });
+            ws.m_modified_fees = SaturatingAdd(ws.m_modified_fees, -dust_penalty);
+        }
+    }
 
     // Enforces 0-fee for dust transactions, no incentive to be mined alone
     if (m_pool.m_opts.require_standard && !ignore_rejects.count("dust")) {
@@ -2885,8 +2903,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     // in multiple threads). Preallocate the vector size so a new allocation
     // doesn't invalidate pointers into the vector, and keep txsdata in scope
     // for as long as `control`.
-    CCheckQueueControl<CScriptCheck> control(fScriptChecks && parallel_script_checks ? &m_chainman.GetCheckQueue() : nullptr);
     std::vector<PrecomputedTransactionData> txsdata(block.vtx.size());
+    CCheckQueueControl<CScriptCheck> control(fScriptChecks && parallel_script_checks ? &m_chainman.GetCheckQueue() : nullptr);
 
     std::vector<int> prevheights;
     CAmount nFees = 0;
@@ -4787,8 +4805,8 @@ bool ChainstateManager::ProcessNewBlockHeaders(std::span<const CBlockHeader> hea
             const CBlockIndex& last_accepted{**ppindex};
             int64_t blocks_left{(NodeClock::now() - last_accepted.Time()) / GetConsensus().PowTargetSpacing()};
             blocks_left = std::max<int64_t>(0, blocks_left);
-            const double progress{100.0 * last_accepted.nHeight / (last_accepted.nHeight + blocks_left)};
-            LogInfo("Synchronizing blockheaders, height: %d (~%.2f%%)\n", last_accepted.nHeight, progress);
+            const int progress = last_accepted.nHeight ? static_cast<int>(1000LL * last_accepted.nHeight / (last_accepted.nHeight + blocks_left)) : 0;
+            LogInfo("Synchronizing blockheaders, height: %d (~%d.%d%%)\n", last_accepted.nHeight, progress / 10, progress % 10);
         }
     }
     return true;
@@ -4814,8 +4832,8 @@ void ChainstateManager::ReportHeadersPresync(const arith_uint256& work, int64_t 
     if (initial_download) {
         int64_t blocks_left{(NodeClock::now() - NodeSeconds{std::chrono::seconds{timestamp}}) / GetConsensus().PowTargetSpacing()};
         blocks_left = std::max<int64_t>(0, blocks_left);
-        const double progress{100.0 * height / (height + blocks_left)};
-        LogInfo("Pre-synchronizing blockheaders, height: %d (~%.2f%%)\n", height, progress);
+        const int progress = height ? static_cast<int>(1000LL * height / (height + blocks_left)) : 0;
+        LogInfo("Pre-synchronizing blockheaders, height: %d (~%d.%d%%)\n", height, progress / 10, progress % 10);
     }
 }
 
@@ -5058,9 +5076,9 @@ bool Chainstate::LoadChainTip()
     auto target = tip;
     while (target) {
         const bool is_candidate{setBlockIndexCandidates.contains(target)};
-        if (is_candidate) setBlockIndexCandidates.erase(tip);
+        if (is_candidate) setBlockIndexCandidates.erase(target);
         target->nSequenceId = SEQ_ID_BEST_CHAIN_FROM_DISK;
-        if (is_candidate) setBlockIndexCandidates.insert(tip);
+        if (is_candidate) setBlockIndexCandidates.insert(target);
         target = target->pprev;
     }
     PruneBlockIndexCandidates();
@@ -6663,6 +6681,7 @@ ChainstateManager::ChainstateManager(const util::SignalInterrupt& interrupt, Opt
       m_blockman{interrupt, std::move(blockman_options)},
       m_validation_cache{m_options.script_execution_cache_bytes, m_options.signature_cache_bytes}
 {
+    m_options.notifications.warningSet(kernel::Warning::RULES_NOT_ENFORCED, strprintf(_("Warning: This outdated version does not support the BIP110/RDTS upgrade, and is therefore vulnerable to displaying fake or fraudulent transactions. Please update: %s"), CLIENT_URL));
 }
 
 ChainstateManager::~ChainstateManager()
