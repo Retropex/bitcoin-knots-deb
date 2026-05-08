@@ -7,6 +7,7 @@
 import configparser
 from enum import Enum
 import argparse
+from importlib.util import find_spec
 import logging
 import os
 import platform
@@ -230,6 +231,16 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
                 self.options.descriptors = None
 
         PortSeed.n = self.options.port_seed
+
+        self.MAINNET_NORMAL_STDERR = f'''Warning: Upcoming BIP110/RDTS Network Upgrade
+
+This version of {self.config['environment']['CLIENT_NAME']} does not support the upcoming BIP110 (RDTS) network upgrade, which fixes critical vulnerabilities in long-standing network design.
+
+Important: Because this upgrade already has broad community support, continuing to run older versions (such as this version) does not reject it. Running outdated software after any network upgrade only leaves your node vulnerable to displaying fake or fraudulent transactions. To effectively reject this upgrade, you need to run alternative software designed to split away from the upgraded network.
+
+To adopt this upgrade and remain secure, please update {self.config['environment']['CLIENT_NAME']}: {self.config['environment']['CLIENT_URL']}
+
+For more information, see: https://bitcoinknots.org/learn/2026-rdts'''.replace('\n', os.linesep)
 
     def set_binary_paths(self):
         """Update self.options with the paths of all binaries from environment variables or their default values"""
@@ -544,6 +555,7 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
                 use_valgrind=self.options.valgrind,
                 descriptors=self.options.descriptors,
                 v2transport=self.options.v2transport,
+                expected_stderr_prefix=self.MAINNET_NORMAL_STDERR if (self.chain == '') else '',
             )
             self.nodes.append(test_node_i)
             if not test_node_i.version_is_at_least(170000):
@@ -988,6 +1000,17 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
         """Skip the running test if previous releases are not available."""
         if not self.has_previous_releases():
             raise SkipTest("previous releases not available or disabled")
+
+    def has_resource_module(self):
+        """Checks whether the resource module is available."""
+        return find_spec('resource') is not None
+
+    @property
+    def RLIM_INFINITY(self):
+        if not self.has_resource_module():
+            return None
+        import resource
+        return resource.RLIM_INFINITY
 
     def has_previous_releases(self):
         """Checks whether previous releases are present and enabled."""
