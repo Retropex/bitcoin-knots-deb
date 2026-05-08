@@ -1,0 +1,10 @@
+# False positive
+bitcoin-knots-prerdts: hardening-no-fortify-functions [usr/bin/bitcoin-cli]
+bitcoin-knots-prerdts: hardening-no-fortify-functions [usr/bin/bitcoin-util]
+bitcoin-knots-prerdts: spelling-error-in-binary
+
+# False positive, these templates are used dynamically in a function.
+bitcoin-knots-prerdts: unused-debconf-template bitcoin-knots/*-fail [templates:*]
+
+# This is expected to not break compatibility between bitcoin-knots/bitcoin-knots-prerdts on package that expect it.
+bitcoin-knots-prerdts: init.d-script-does-not-provide-itself [etc/init.d/bitcoin-knots-prerdts]

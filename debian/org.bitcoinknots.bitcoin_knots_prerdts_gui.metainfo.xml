@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Copyright 2013 Léo Haf <leo@haf.ovh> -->
 <component type="desktop-application">
-  <id>org.bitcoinknots.bitcoin_knots_gui</id>
+  <id>org.bitcoinknots.bitcoin_knots_prerdts_gui</id>
   <metadata_license>MIT</metadata_license>
   <project_license>MIT</project_license>
   <content_rating type="oars-1.0" />
@@ -16,7 +16,7 @@
     </p>
   </description>
 
-  <launchable type="desktop-id">bitcoin-knots-gui.desktop</launchable>
+  <launchable type="desktop-id">bitcoin-knots-prerdts-gui.desktop</launchable>
 
   <screenshots>
     <screenshot type="default">
@@ -33,6 +33,12 @@
   </provides>
 
   <releases>
+    <release version="29.3.knots20260507" date="2026-05-07">
+      <url>https://github.com/bitcoinknots/bitcoin/releases/tag/v29.3.knots20260507</url>
+      <description>
+        <p>See release notes on GitHub.</p>
+      </description>
+    </release>
     <release version="29.3.knots20260210" date="2026-02-10">
       <url>https://github.com/bitcoinknots/bitcoin/releases/tag/v29.3.knots20260210</url>
       <description>

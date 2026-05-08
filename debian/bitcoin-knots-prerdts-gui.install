@@ -1,0 +1,5 @@
+usr/bin/bitcoin-qt
+#Install the logo for desktop environment
+build/src/qt/res/rendered_icons/bitcoin256.png /usr/share/bitcoin/
+debian/bitcoin-knots-prerdts-gui.desktop usr/share/applications/
+debian/org.bitcoinknots.bitcoin_knots_prerdts_gui.metainfo.xml usr/share/metainfo/

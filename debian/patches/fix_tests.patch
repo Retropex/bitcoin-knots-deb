@@ -8,11 +8,11 @@ Description: The tests are designed to be run after the build and before
 Author: Soren Stoutner <soren@debian.org>
         Léo Haf <leo@haf.ovh>
 Forwarded: not-needed
-Last-Update: 2025-09-09
+Last-Update: 2026-05-08
 
 --- a/test/functional/test_framework/test_framework.py
 +++ b/test/functional/test_framework/test_framework.py
-@@ -241,11 +241,7 @@
+@@ -252,11 +252,7 @@
              "bitcoin-wallet": ("bitcoinwallet", "BITCOINWALLET"),
          }
          for binary, [attribute_name, env_variable_name] in binaries.items():
@@ -27,7 +27,7 @@ Last-Update: 2025-09-09
      def setup(self):
 --- a/test/functional/test_runner.py
 +++ b/test/functional/test_runner.py
-@@ -491,7 +491,8 @@
+@@ -495,7 +495,8 @@
  
      # Set up logging
      logging_level = logging.INFO if args.quiet else logging.DEBUG

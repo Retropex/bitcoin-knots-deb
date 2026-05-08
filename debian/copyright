@@ -1,5 +1,5 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: bitcoin-knots
+Upstream-Name: bitcoin-knots-prerdts
 Upstream-Contact: Luke Dashjr <luke+github_public@dashjr.org>
 Source: https://github.com/bitcoinknots/bitcoin
 

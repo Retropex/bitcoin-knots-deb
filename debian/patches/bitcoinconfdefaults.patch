@@ -11,9 +11,9 @@ Last-Update: 2026-04-10
 -#datadir=<dir>
 +datadir=/var/lib/bitcoin/
  
- # Maximum database cache size <n> MiB (minimum 4, default: 450). Make sure
- # you have enough RAM. In addition, unused memory allocated to the
-@@ -843,7 +843,7 @@
+ # Maximum database cache size <n> MiB (minimum 4, default is platform
+ # dependent, between 100 and 2048). Make sure you have enough RAM.
+@@ -855,7 +855,7 @@
  #rpcwhitelistdefault=1
  
  # Accept command line and JSON-RPC commands
