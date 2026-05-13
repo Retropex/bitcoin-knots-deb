@@ -4,7 +4,7 @@ Forwarded: not-needed
 Last-Update: 2026-04-16
 --- a/share/examples/bitcoin.conf
 +++ b/share/examples/bitcoin.conf
-@@ -824,6 +824,9 @@ datadir=/var/lib/bitcoin/
+@@ -844,6 +844,9 @@
  # Set the number of threads to service RPC calls (default: 16)
  #rpcthreads=<n>
  
