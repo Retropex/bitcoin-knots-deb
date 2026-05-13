@@ -1,3 +1,9 @@
+bitcoin-knots (29.3.knots20260508-1) unstable; urgency=medium
+
+  * New upstream version v29.3.0.knots20260508
+
+ -- Léo Haf <leo@haf.ovh>  Wed, 13 May 2026 17:15:17 +0200
+
 bitcoin-knots (29.3.knots20260210-4) unstable; urgency=medium
 
   * Move the bitcoin.conf file check to postinst
