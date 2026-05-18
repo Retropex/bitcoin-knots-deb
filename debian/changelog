@@ -1,6 +1,7 @@
 bitcoin-knots (29.3.knots20260508-1) unstable; urgency=medium
 
   * New upstream version v29.3.0.knots20260508
+  * Fix debconf asking questions twice with apt
 
  -- Léo Haf <leo@haf.ovh>  Wed, 13 May 2026 17:15:17 +0200
 
