@@ -1,3 +1,9 @@
+bitcoin-knots (29.3.knots20260508-1~bpo13+1) trixie-backports; urgency=medium
+
+  * Rebuild for trixie-backports.
+
+ -- Léo Haf <leo@haf.ovh>  Mon, 18 May 2026 16:16:28 +0200
+
 bitcoin-knots (29.3.knots20260508-1) unstable; urgency=medium
 
   * New upstream version v29.3.0.knots20260508
