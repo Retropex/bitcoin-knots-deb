@@ -1,3 +1,10 @@
+bitcoin-knots (29.3.knots20260508-2) unstable; urgency=medium
+
+  * Loosen security hardening in systemd service file 
+    to allow USR call
+
+ -- Léo Haf <leo@haf.ovh>  Mon, 01 Jun 2026 15:41:29 +0200
+
 bitcoin-knots (29.3.knots20260508-1) unstable; urgency=medium
 
   * New upstream version v29.3.0.knots20260508
