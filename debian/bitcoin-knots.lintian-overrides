@@ -5,3 +5,7 @@ bitcoin-knots: spelling-error-in-binary
 
 # False positive, these templates are used dynamically in a function.
 bitcoin-knots: unused-debconf-template bitcoin-knots/*-fail [templates:*]
+
+# Not putting a period is weird in this context.
+bitcoin-knots: malformed-title-in-templates bitcoin-knots/*-wrong [templates:*]
+bitcoin-knots: malformed-title-in-templates bitcoin-knots/prune-fail [templates:38]

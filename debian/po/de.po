@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bitcoin-knots 20260210-3\n"
 "Report-Msgid-Bugs-To: bitcoin-knots@packages.debian.org\n"
-"POT-Creation-Date: 2026-04-17 11:11+0200\n"
+"POT-Creation-Date: 2026-06-01 16:33+0200\n"
 "PO-Revision-Date: 2026-05-09 18:20+0200\n"
 "Last-Translator: Helge Kreutzmann <debian@helgefjell.de>\n"
 "Language-Team: German <debian-l10n-german@lists.debian.org>\n"
@@ -42,9 +42,13 @@ msgstr "Wert für das Reduzieren (muss mindestens 550 oder 0/1 sein) in MiB:"
 #. Type: string
 #. Description
 #: ../bitcoin-knots.templates:2001
+#, fuzzy
+#| msgid ""
+#| "0 = disabled, 1 = allow manual pruning via RPC,  >=550 = automatically "
+#| "prune block files to stay under the target size in MiB"
 msgid ""
 "0 = disabled, 1 = allow manual pruning via RPC,  >=550 = automatically prune "
-"block files to stay under the target size in MiB"
+"block files to stay under the target size in MiB."
 msgstr ""
 "0 = deaktiviert, 1 = manuelles Reduzieren mittels RPC erlauben, >=550 = "
 "automatisch Blockdateien reduzieren, um unterhalb der Zielgröße in MiB zu "
@@ -53,15 +57,21 @@ msgstr ""
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:3001
-msgid "Couldn't configure prune"
+#, fuzzy
+#| msgid "Couldn't configure prune"
+msgid "Couldn't configure prune."
 msgstr "Reduzieren konnte nicht konfiguriert werden."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:3001
+#, fuzzy
+#| msgid ""
+#| "Couldn't configure the prune setting as expected,  please set your value "
+#| "manually in /etc/bitcoin/bitcoin.conf"
 msgid ""
 "Couldn't configure the prune setting as expected,  please set your value "
-"manually in /etc/bitcoin/bitcoin.conf"
+"manually in the /etc/bitcoin/bitcoin.conf file."
 msgstr ""
 "Die Einstellung für das Reduzieren konnte nicht wie erwartet konfiguriert "
 "werden, bitte setzen Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf."
@@ -69,13 +79,17 @@ msgstr ""
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:4001
-msgid "Bad value for prune"
+#, fuzzy
+#| msgid "Bad value for prune"
+msgid "Bad value for prune."
 msgstr "Ungültiger Wert für das Reduzieren."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:4001
-msgid "Prune must be 0, 1 or superior or equal to 550"
+#, fuzzy
+#| msgid "Prune must be 0, 1 or superior or equal to 550"
+msgid "Prune must be 0, 1 or superior or equal to 550."
 msgstr "Reduzieren muss 0, 1 oder größer oder gleich 550 sein."
 
 #. Type: boolean
@@ -87,22 +101,30 @@ msgstr "Möchten Sie den Transaktions-Index aktivieren?"
 #. Type: boolean
 #. Description
 #: ../bitcoin-knots.templates:5001
-msgid "This is required for electrum servers and various other software"
+#, fuzzy
+#| msgid "This is required for electrum servers and various other software"
+msgid "This is required for electrum servers and various other software."
 msgstr ""
 "Dies wird für Electrum-Server und verschiedene andere Software benötigt."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:6001
-msgid "Couldn't configure txindex"
+#, fuzzy
+#| msgid "Couldn't configure txindex"
+msgid "Couldn't configure txindex."
 msgstr "Txindex konnte nicht konfiguriert werden."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:6001
+#, fuzzy
+#| msgid ""
+#| "Couldn't configure the txindex setting as expected,  please set your "
+#| "value manually in /etc/bitcoin/bitcoin.conf"
 msgid ""
 "Couldn't configure the txindex setting as expected,  please set your value "
-"manually in /etc/bitcoin/bitcoin.conf"
+"manually in the /etc/bitcoin/bitcoin.conf file."
 msgstr ""
 "Die Einstellung txindex konnte nicht wie erwartet konfiguriert werden, bitte "
 "richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf ein."
@@ -130,15 +152,21 @@ msgstr ""
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:8001
-msgid "Couldn't configure dbcache"
+#, fuzzy
+#| msgid "Couldn't configure dbcache"
+msgid "Couldn't configure dbcache."
 msgstr "Dbcache konnte nicht konfiguriert werden."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:8001
+#, fuzzy
+#| msgid ""
+#| "Couldn't configure the dbcache setting as expected,  please set your "
+#| "value manually in /etc/bitcoin/bitcoin.conf"
 msgid ""
 "Couldn't configure the dbcache setting as expected,  please set your value "
-"manually in /etc/bitcoin/bitcoin.conf"
+"manually in the /etc/bitcoin/bitcoin.conf file."
 msgstr ""
 "Die Dbcache-Einstellungen konnten nicht wie erwartet konfiguriert werden. "
 "Bitte richten Sie Ihre Werte manuell in /etc/bitcoin/bitcoin.conf ein."
@@ -146,19 +174,26 @@ msgstr ""
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:9001
-msgid "Bad value for dbcache"
+#, fuzzy
+#| msgid "Bad value for dbcache"
+msgid "Bad value for dbcache."
 msgstr "Ungültiger Wert für dbcache."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:9001
-msgid "dbcache must be superior or equal to 4"
+#, fuzzy
+#| msgid "dbcache must be superior or equal to 4"
+msgid "dbcache must be superior or equal to 4."
 msgstr "Dbcache muss größer oder gleich 4 sein."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:10001
-msgid "bitcoin.conf file missing, unable to interactively configure bitcoind"
+#, fuzzy
+#| msgid ""
+#| "bitcoin.conf file missing, unable to interactively configure bitcoind"
+msgid "bitcoin.conf file missing, unable to interactively configure bitcoind."
 msgstr ""
 "Datei bitcoin.conf fehlt, bitcoind kann nicht interaktiv konfiguriert werden."
 
@@ -166,8 +201,12 @@ msgstr ""
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:10001
+#, fuzzy
+#| msgid ""
+#| "the file /etc/bitcoin/bitcoin.conf is missing, debconf expect this file "
+#| "to  interactively configure bitcoind."
 msgid ""
-"the file /etc/bitcoin/bitcoin.conf is missing, debconf expect this file to  "
+"The file /etc/bitcoin/bitcoin.conf is missing, debconf expect this file to  "
 "interactively configure bitcoind."
 msgstr ""
 "Die Datei /etc/bitcoin/bitcoin.conf fehlt. Debconf benötgt diese Datei, um "
@@ -177,14 +216,20 @@ msgstr ""
 #. Description
 #: ../bitcoin-knots.templates:11001
 msgid "Value for pruneduringinit (must be at least 550 or -1/0/1) in MiB:"
-msgstr "Wert für pruneduringinit (muss mindestens 550 oder -1/0/1 sein) in MiB:"
+msgstr ""
+"Wert für pruneduringinit (muss mindestens 550 oder -1/0/1 sein) in MiB:"
 
 #. Type: string
 #. Description
 #: ../bitcoin-knots.templates:11001
+#, fuzzy
+#| msgid ""
+#| "-1 = same as prune, 0 = disabled, 1 = allow manual pruning via RPC,  "
+#| ">=550 = automatically prune block files to stay under the target size in "
+#| "MiB"
 msgid ""
 "-1 = same as prune, 0 = disabled, 1 = allow manual pruning via RPC,  >=550 = "
-"automatically prune block files to stay under the target size in MiB"
+"automatically prune block files to stay under the target size in MiB."
 msgstr ""
 "-1 = identisch zu Reduzieren, 0 = deaktivert, 1 = manuelles Reduzieren "
 "mittels RPC erlauben, >=550 = automatisch Blockdateien reduzieren, um "
@@ -193,30 +238,41 @@ msgstr ""
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:12001
-msgid "Bad value for pruneduringinit"
+#, fuzzy
+#| msgid "Bad value for pruneduringinit"
+msgid "Bad value for pruneduringinit."
 msgstr "Ungültiger Wert für pruneduringinit."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:12001
-msgid "Pruneduringinit must be -1, 0, 1 or superior or equal to 550"
+#, fuzzy
+#| msgid "Pruneduringinit must be -1, 0, 1 or superior or equal to 550"
+msgid "Pruneduringinit must be -1, 0, 1 or superior or equal to 550."
 msgstr "Pruneduringinit muss -1, 0, 1 oder größer oder gleich 550 sein."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:13001
-msgid "Couldn't configure pruneduringinit"
+#, fuzzy
+#| msgid "Couldn't configure pruneduringinit"
+msgid "Couldn't configure pruneduringinit."
 msgstr "pruneduringinit konnte nicht konfiguriert werden."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:13001
+#, fuzzy
+#| msgid ""
+#| "Couldn't configure the pruneduringinit setting as expected,  please set "
+#| "your value manually in /etc/bitcoin/bitcoin.conf"
 msgid ""
 "Couldn't configure the pruneduringinit setting as expected,  please set your "
-"value manually in /etc/bitcoin/bitcoin.conf"
+"value manually in the /etc/bitcoin/bitcoin.conf file."
 msgstr ""
-"Die Einstellung pruneduringinit konnte nicht wie erwartet konfiguriert werden, bitte "
-"richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf ein."
+"Die Einstellung pruneduringinit konnte nicht wie erwartet konfiguriert "
+"werden, bitte richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf "
+"ein."
 
 #. Type: string
 #. Description
@@ -227,36 +283,48 @@ msgstr "Wert für rpcthreads (muss größer oder gleich 0 sein):"
 #. Type: string
 #. Description
 #: ../bitcoin-knots.templates:14001
-msgid "Set the number of threads to service RPC calls"
+#, fuzzy
+#| msgid "Set the number of threads to service RPC calls"
+msgid "Set the number of threads to service RPC calls."
 msgstr "Setzt die Anzahl von Threads, um RPC-Aufrufe zu bedienen."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:15001
-msgid "Bad value for rpcthreads"
+#, fuzzy
+#| msgid "Bad value for rpcthreads"
+msgid "Bad value for rpcthreads."
 msgstr "Ungültiger Wert für rpcthreads."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:15001
-msgid "rpcthreads must be superior or equal to 0"
+#, fuzzy
+#| msgid "rpcthreads must be superior or equal to 0"
+msgid "rpcthreads must be superior or equal to 0."
 msgstr "rpcthreads muss größer oder gleich 0 sein."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:16001
-msgid "Couldn't configure rpcthreads"
+#, fuzzy
+#| msgid "Couldn't configure rpcthreads"
+msgid "Couldn't configure rpcthreads."
 msgstr "rpcthreads konnte nicht konfiguriert werden."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:16001
+#, fuzzy
+#| msgid ""
+#| "Couldn't configure the rpcthreads setting as expected,  please set your "
+#| "value manually in /etc/bitcoin/bitcoin.conf"
 msgid ""
 "Couldn't configure the rpcthreads setting as expected,  please set your "
-"value manually in /etc/bitcoin/bitcoin.conf"
+"value manually in the /etc/bitcoin/bitcoin.conf file."
 msgstr ""
-"Die Einstellung rpcthreads konnte nicht wie erwartet konfiguriert werden, bitte "
-"richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf ein."
+"Die Einstellung rpcthreads konnte nicht wie erwartet konfiguriert werden, "
+"bitte richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf ein."
 
 #. Type: string
 #. Description
@@ -267,36 +335,50 @@ msgstr "Wert für rpcworkqueue (muss größer oder gleich 0 sein):"
 #. Type: string
 #. Description
 #: ../bitcoin-knots.templates:17001
-msgid "Set the maximum depth of the work queue to service RPC calls"
-msgstr "Setzt die maximale Tiefe der Arbeitswarteschlange, um RPC-Aufrufe zu bedienen."
+#, fuzzy
+#| msgid "Set the maximum depth of the work queue to service RPC calls"
+msgid "Set the maximum depth of the work queue to service RPC calls."
+msgstr ""
+"Setzt die maximale Tiefe der Arbeitswarteschlange, um RPC-Aufrufe zu "
+"bedienen."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:18001
-msgid "Bad value for rpcworkqueue"
+#, fuzzy
+#| msgid "Bad value for rpcworkqueue"
+msgid "Bad value for rpcworkqueue."
 msgstr "Ungültiger Wert für rpcworkqueue."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:18001
-msgid "rpcworkqueue must be superior or equal to 0"
+#, fuzzy
+#| msgid "rpcworkqueue must be superior or equal to 0"
+msgid "rpcworkqueue must be superior or equal to 0."
 msgstr "rpcworkqueue muss größer oder gleich 0 sein."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:19001
-msgid "Couldn't configure rpcworkqueue"
+#, fuzzy
+#| msgid "Couldn't configure rpcworkqueue"
+msgid "Couldn't configure rpcworkqueue."
 msgstr "rpcworkqueue konnte nicht konfiguriert werden."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:19001
+#, fuzzy
+#| msgid ""
+#| "Couldn't configure the rpcworkqueue setting as expected,  please set your "
+#| "value manually in /etc/bitcoin/bitcoin.conf"
 msgid ""
 "Couldn't configure the rpcworkqueue setting as expected,  please set your "
-"value manually in /etc/bitcoin/bitcoin.conf"
+"value manually in the /etc/bitcoin/bitcoin.conf file."
 msgstr ""
-"Die Einstellung rpcworkqueue konnte nicht wie erwartet konfiguriert werden, bitte "
-"richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf ein."
+"Die Einstellung rpcworkqueue konnte nicht wie erwartet konfiguriert werden, "
+"bitte richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf ein."
 
 #. Type: string
 #. Description
@@ -307,36 +389,51 @@ msgstr "Wert für blockprioritysize:"
 #. Type: string
 #. Description
 #: ../bitcoin-knots.templates:20001
-msgid "Set maximum size of high-priority/low-fee transactions in bytes"
-msgstr "Setzt die maximale Größe von hochpriorisierten/günstigen Transaktionen in Byte."
+#, fuzzy
+#| msgid "Set maximum size of high-priority/low-fee transactions in bytes"
+msgid "Set maximum size of high-priority/low-fee transactions in bytes."
+msgstr ""
+"Setzt die maximale Größe von hochpriorisierten/günstigen Transaktionen in "
+"Byte."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:21001
-msgid "Bad value for blockprioritysize"
+#, fuzzy
+#| msgid "Bad value for blockprioritysize"
+msgid "Bad value for blockprioritysize."
 msgstr "Ungültiger Wert für blockprioritysize."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:21001
-msgid "blockprioritysize must be between 0 and 4000000"
+#, fuzzy
+#| msgid "blockprioritysize must be between 0 and 4000000"
+msgid "blockprioritysize must be between 0 and 4000000."
 msgstr "blockprioritysize muss zwischen 0 und 4000000 liegen."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:22001
-msgid "Couldn't configure blockprioritysize"
+#, fuzzy
+#| msgid "Couldn't configure blockprioritysize"
+msgid "Couldn't configure blockprioritysize."
 msgstr "blockprioritysize konnte nicht konfiguriert werden."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:22001
+#, fuzzy
+#| msgid ""
+#| "Couldn't configure the blockprioritysize setting as expected,  please set "
+#| "your value manually in /etc/bitcoin/bitcoin.conf"
 msgid ""
 "Couldn't configure the blockprioritysize setting as expected,  please set "
-"your value manually in /etc/bitcoin/bitcoin.conf"
+"your value manually in the /etc/bitcoin/bitcoin.conf file."
 msgstr ""
-"Die Einstellung blockprioritysize konnte nicht wie erwartet konfiguriert werden, bitte "
-"richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf ein."
+"Die Einstellung blockprioritysize konnte nicht wie erwartet konfiguriert "
+"werden, bitte richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf "
+"ein."
 
 #. Type: string
 #. Description
@@ -347,36 +444,48 @@ msgstr "Wert für blockmaxsize:"
 #. Type: string
 #. Description
 #: ../bitcoin-knots.templates:23001
-msgid "Set maximum block size in bytes"
+#, fuzzy
+#| msgid "Set maximum block size in bytes"
+msgid "Set maximum block size in bytes."
 msgstr "Setzt die maximale Blockgröße in Byte."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:24001
-msgid "Bad value for blockmaxsize"
+#, fuzzy
+#| msgid "Bad value for blockmaxsize"
+msgid "Bad value for blockmaxsize."
 msgstr "Ungültiger Wert für blockmaxsize."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:24001
-msgid "blockmaxsize must be between 0 and 3985000"
+#, fuzzy
+#| msgid "blockmaxsize must be between 0 and 3985000"
+msgid "blockmaxsize must be between 0 and 3985000."
 msgstr "blockmaxsize muss zwischen 0 und 3985000 liegen."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:25001
-msgid "Couldn't configure blockmaxsize"
+#, fuzzy
+#| msgid "Couldn't configure blockmaxsize"
+msgid "Couldn't configure blockmaxsize."
 msgstr "blockmaxsize konnte nicht konfiguriert werden."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:25001
+#, fuzzy
+#| msgid ""
+#| "Couldn't configure the blockmaxsize setting as expected,  please set your "
+#| "value manually in /etc/bitcoin/bitcoin.conf"
 msgid ""
 "Couldn't configure the blockmaxsize setting as expected,  please set your "
-"value manually in /etc/bitcoin/bitcoin.conf"
+"value manually in the /etc/bitcoin/bitcoin.conf file."
 msgstr ""
-"Die Einstellung blockmaxsize konnte nicht wie erwartet konfiguriert werden, bitte "
-"richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf ein."
+"Die Einstellung blockmaxsize konnte nicht wie erwartet konfiguriert werden, "
+"bitte richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf ein."
 
 #. Type: string
 #. Description
@@ -387,36 +496,49 @@ msgstr "Wert für blockmaxweight:"
 #. Type: string
 #. Description
 #: ../bitcoin-knots.templates:26001
-msgid "Set maximum BIP141 block weight"
+#, fuzzy
+#| msgid "Set maximum BIP141 block weight"
+msgid "Set maximum BIP141 block weight."
 msgstr "Setzt das maximale BIP141-Blockgewicht."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:27001
-msgid "Bad value for blockmaxweight"
+#, fuzzy
+#| msgid "Bad value for blockmaxweight"
+msgid "Bad value for blockmaxweight."
 msgstr "Ungültiger Wert für blockmaxweight."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:27001
-msgid "blockmaxweight must be between 0 and 3985000"
+#, fuzzy
+#| msgid "blockmaxweight must be between 0 and 3985000"
+msgid "blockmaxweight must be between 0 and 3985000."
 msgstr "blockmaxweight muss zwischen 0 und 3985000 liegen."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:28001
-msgid "Couldn't configure blockmaxweight"
+#, fuzzy
+#| msgid "Couldn't configure blockmaxweight"
+msgid "Couldn't configure blockmaxweight."
 msgstr "blockmaxweight konnte nicht konfiguriert werden."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:28001
+#, fuzzy
+#| msgid ""
+#| "Couldn't configure the blockmaxweight setting as expected,  please set "
+#| "your value manually in /etc/bitcoin/bitcoin.conf"
 msgid ""
 "Couldn't configure the blockmaxweight setting as expected,  please set your "
-"value manually in /etc/bitcoin/bitcoin.conf"
+"value manually in the /etc/bitcoin/bitcoin.conf file."
 msgstr ""
-"Die Einstellung blockmaxweight konnte nicht wie erwartet konfiguriert werden, bitte "
-"richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf ein."
+"Die Einstellung blockmaxweight konnte nicht wie erwartet konfiguriert "
+"werden, bitte richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf "
+"ein."
 
 #. Type: string
 #. Description
@@ -427,19 +549,25 @@ msgstr "Wert für maxmempool:"
 #. Type: string
 #. Description
 #: ../bitcoin-knots.templates:29001
-msgid "Keep the transaction memory pool below <n> megabytes"
+#, fuzzy
+#| msgid "Keep the transaction memory pool below <n> megabytes"
+msgid "Keep the transaction memory pool below <n> megabytes."
 msgstr "Hält den Transaktions-Speicher-Pool unter <n> megabyte."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:30001
-msgid "Bad value for maxmempool"
+#, fuzzy
+#| msgid "Bad value for maxmempool"
+msgid "Bad value for maxmempool."
 msgstr "Ungültiger Wert für maxmempool."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:30001
-msgid "maxmempool must be superior or equal to 5"
+#, fuzzy
+#| msgid "maxmempool must be superior or equal to 5"
+msgid "maxmempool must be superior or equal to 5."
 msgstr "maxmempool muss größer oder gleich 5 sein."
 
 #. Type: error
@@ -451,12 +579,16 @@ msgstr "maxmempool konnte nicht konfiguriert werden."
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:31001
+#, fuzzy
+#| msgid ""
+#| "Couldn't configure the maxmempool setting as expected,  please set your "
+#| "value manually in /etc/bitcoin/bitcoin.conf"
 msgid ""
 "Couldn't configure the maxmempool setting as expected,  please set your "
-"value manually in /etc/bitcoin/bitcoin.conf"
+"value manually in the /etc/bitcoin/bitcoin.conf file."
 msgstr ""
-"Die Einstellung maxmempool konnte nicht wie erwartet konfiguriert werden, bitte "
-"richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf ein."
+"Die Einstellung maxmempool konnte nicht wie erwartet konfiguriert werden, "
+"bitte richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf ein."
 
 #. Type: string
 #. Description
@@ -467,36 +599,52 @@ msgstr "Wert für blockreconstructionextratxn:"
 #. Type: string
 #. Description
 #: ../bitcoin-knots.templates:32001
-msgid "Extra transactions to keep in memory for compact block reconstructions"
-msgstr "Zusätzliche Transaktionen, die für kompakte Blockwiederherstellungen im Speicher behalten werden sollen."
+#, fuzzy
+#| msgid ""
+#| "Extra transactions to keep in memory for compact block reconstructions"
+msgid "Extra transactions to keep in memory for compact block reconstructions."
+msgstr ""
+"Zusätzliche Transaktionen, die für kompakte Blockwiederherstellungen im "
+"Speicher behalten werden sollen."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:33001
-msgid "Bad value for blockreconstructionextratxn"
+#, fuzzy
+#| msgid "Bad value for blockreconstructionextratxn"
+msgid "Bad value for blockreconstructionextratxn."
 msgstr "Ungültiger Wert für blockreconstructionextratxn."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:33001
-msgid "blockreconstructionextratxn must be superior or equal to 0"
+#, fuzzy
+#| msgid "blockreconstructionextratxn must be superior or equal to 0"
+msgid "blockreconstructionextratxn must be superior or equal to 0."
 msgstr "blockreconstructionextratxn muss größer oder gleich 0 sein."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:34001
-msgid "Couldn't configure blockreconstructionextratxn"
+#, fuzzy
+#| msgid "Couldn't configure blockreconstructionextratxn"
+msgid "Couldn't configure blockreconstructionextratxn."
 msgstr "blockreconstructionextratxn konnte nicht konfiguriert werden."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:34001
+#, fuzzy
+#| msgid ""
+#| "Couldn't configure the blockreconstructionextratxn setting as expected,  "
+#| "please set your value manually in /etc/bitcoin/bitcoin.conf"
 msgid ""
 "Couldn't configure the blockreconstructionextratxn setting as expected,  "
-"please set your value manually in /etc/bitcoin/bitcoin.conf"
+"please set your value manually in the /etc/bitcoin/bitcoin.conf file."
 msgstr ""
-"Die Einstellung blockreconstructionextratxn konnte nicht wie erwartet konfiguriert werden, bitte "
-"richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf ein."
+"Die Einstellung blockreconstructionextratxn konnte nicht wie erwartet "
+"konfiguriert werden, bitte richten Sie Ihren Wert manuell in /etc/bitcoin/"
+"bitcoin.conf ein."
 
 #. Type: string
 #. Description
@@ -507,9 +655,13 @@ msgstr "Wert für blockreconstructionextratxnsize:"
 #. Type: string
 #. Description
 #: ../bitcoin-knots.templates:35001
+#, fuzzy
+#| msgid ""
+#| "Upper limit of memory usage (in megabytes) for keeping extra transactions "
+#| "in memory for compact block reconstructions"
 msgid ""
 "Upper limit of memory usage (in megabytes) for keeping extra transactions in "
-"memory for compact block reconstructions"
+"memory for compact block reconstructions."
 msgstr ""
 "Obere Speicherverwendungs-Begrenzung (in Magabyte) zur Beibehaltung "
 "zusätzlicher Transaktionen im Speicher für die kompakte "
@@ -518,30 +670,41 @@ msgstr ""
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:36001
-msgid "Bad value for blockreconstructionextratxnsize"
+#, fuzzy
+#| msgid "Bad value for blockreconstructionextratxnsize"
+msgid "Bad value for blockreconstructionextratxnsize."
 msgstr "Ungültiger Wert für blockreconstructionextratxnsize."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:36001
-msgid "blockreconstructionextratxnsize must be superior or equal to 0"
+#, fuzzy
+#| msgid "blockreconstructionextratxnsize must be superior or equal to 0"
+msgid "blockreconstructionextratxnsize must be superior or equal to 0."
 msgstr "blockreconstructionextratxnsize muss größer oder gleich 0 sein."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:37001
-msgid "Couldn't configure blockreconstructionextratxnsize"
+#, fuzzy
+#| msgid "Couldn't configure blockreconstructionextratxnsize"
+msgid "Couldn't configure blockreconstructionextratxnsize."
 msgstr "blockreconstructionextratxnsize konnte nicht konfiguriert werden."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:37001
+#, fuzzy
+#| msgid ""
+#| "Couldn't configure the blockreconstructionextratxnsize setting as "
+#| "expected,  please set your value manually in /etc/bitcoin/bitcoin.conf"
 msgid ""
 "Couldn't configure the blockreconstructionextratxnsize setting as expected,  "
-"please set your value manually in /etc/bitcoin/bitcoin.conf"
+"please set your value manually in the /etc/bitcoin/bitcoin.conf file."
 msgstr ""
-"Die Einstellung blockreconstructionextratxnsize konnte nicht wie erwartet konfiguriert werden, bitte "
-"richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf ein."
+"Die Einstellung blockreconstructionextratxnsize konnte nicht wie erwartet "
+"konfiguriert werden, bitte richten Sie Ihren Wert manuell in /etc/bitcoin/"
+"bitcoin.conf ein."
 
 #. Type: string
 #. Description
@@ -552,36 +715,48 @@ msgstr "Wert für maxorphantx:"
 #. Type: string
 #. Description
 #: ../bitcoin-knots.templates:38001
-msgid "Keep at most <n> unconnectable transactions in memory"
+#, fuzzy
+#| msgid "Keep at most <n> unconnectable transactions in memory"
+msgid "Keep at most <n> unconnectable transactions in memory."
 msgstr "Maximal <n> nicht verbindbare Transaktionen im Speicher behalten."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:39001
-msgid "Bad value for maxorphantx"
+#, fuzzy
+#| msgid "Bad value for maxorphantx"
+msgid "Bad value for maxorphantx."
 msgstr "Ungültiger Wert für maxorphantx."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:39001
-msgid "maxorphantx must be superior or equal to 0"
+#, fuzzy
+#| msgid "maxorphantx must be superior or equal to 0"
+msgid "maxorphantx must be superior or equal to 0."
 msgstr "maxorphantx muss größer oder gleich 0 sein."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:40001
-msgid "Couldn't configure maxorphantx"
+#, fuzzy
+#| msgid "Couldn't configure maxorphantx"
+msgid "Couldn't configure maxorphantx."
 msgstr "maxorphantx konnte nicht konfiguriert werden."
 
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:40001
+#, fuzzy
+#| msgid ""
+#| "Couldn't configure the maxorphantx setting as expected,  please set your "
+#| "value manually in /etc/bitcoin/bitcoin.conf"
 msgid ""
 "Couldn't configure the maxorphantx setting as expected,  please set your "
-"value manually in /etc/bitcoin/bitcoin.conf"
+"value manually in the /etc/bitcoin/bitcoin.conf file."
 msgstr ""
-"Die Einstellung maxorphantx konnte nicht wie erwartet konfiguriert werden, bitte "
-"richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf ein."
+"Die Einstellung maxorphantx konnte nicht wie erwartet konfiguriert werden, "
+"bitte richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf ein."
 
 #. Type: string
 #. Description
@@ -592,8 +767,13 @@ msgstr "Wert für datacarriersize:"
 #. Type: string
 #. Description
 #: ../bitcoin-knots.templates:41001
+#, fuzzy
+#| msgid ""
+#| "Maximum size of data in data carrier transactions to relay and mine, in "
+#| "bytes"
 msgid ""
-"Maximum size of data in data carrier transactions to relay and mine, in bytes"
+"Maximum size of data in data carrier transactions to relay and mine, in "
+"bytes."
 msgstr ""
 "Maximale Größe von Daten in Daten-Übertragungstransaktionen zum Weiterleiten "
 "und Minen, in Byte."
@@ -601,13 +781,17 @@ msgstr ""
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:42001
-msgid "Bad value for datacarriersize"
+#, fuzzy
+#| msgid "Bad value for datacarriersize"
+msgid "Bad value for datacarriersize."
 msgstr "Ungültiger Wert für datacarriersize."
 
 #. Type: note
 #. Description
 #: ../bitcoin-knots.templates:42001
-msgid "datacarriersize must be superior or equal to 0"
+#, fuzzy
+#| msgid "datacarriersize must be superior or equal to 0"
+msgid "datacarriersize must be superior or equal to 0."
 msgstr "datacarriersize muss größer oder gleich 0 sein."
 
 #. Type: error
@@ -619,9 +803,14 @@ msgstr "datacarriersize konnte nicht konfiguriert werden."
 #. Type: error
 #. Description
 #: ../bitcoin-knots.templates:43001
+#, fuzzy
+#| msgid ""
+#| "Couldn't configure the datacarriersize setting as expected,  please set "
+#| "your value manually in /etc/bitcoin/bitcoin.conf"
 msgid ""
 "Couldn't configure the datacarriersize setting as expected,  please set your "
-"value manually in /etc/bitcoin/bitcoin.conf"
+"value manually in the /etc/bitcoin/bitcoin.conf file."
 msgstr ""
-"Die Einstellung datacarriersize konnte nicht wie erwartet konfiguriert werden, bitte "
-"richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf ein."
+"Die Einstellung datacarriersize konnte nicht wie erwartet konfiguriert "
+"werden, bitte richten Sie Ihren Wert manuell in /etc/bitcoin/bitcoin.conf "
+"ein."

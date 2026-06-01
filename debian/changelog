@@ -1,13 +1,13 @@
 bitcoin-knots (29.3.knots20260508-2) unstable; urgency=medium
 
-  * Loosen security hardening in systemd service file 
-    to allow USR call
+  * Loosen security hardening in systemd service file to allow USR call
   * Fix "[INTL:nl] Dutch debconf templates translation" (Closes: #1137537)
   * Fix "[INTL:es] Spanish translation of bitcoin-knots debconf
     template" (Closes: #1137472)
   * Fix "[INTL:de] Initial German debconf translation" (Closes: #1136434)
   * Fix "[INTL:pt] Portuguese translation - debconf messages"
     (Closes: #1136117)
+  * Fix "Issues in Debconf man pages" (Closes: #1136433)
 
  -- Léo Haf <leo@haf.ovh>  Mon, 01 Jun 2026 15:41:29 +0200
 
