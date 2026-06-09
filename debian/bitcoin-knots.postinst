@@ -41,6 +41,11 @@ case "$1" in
     usermod -aG debian-tor $USER >/dev/null || true
   fi
 
+  # Ensure systemd-networkd-wait-online.service is enabled for bitcoind interface binding.
+  if command -v deb-systemd-helper > /dev/null; then
+    deb-systemd-helper enable systemd-networkd-wait-online.service >/dev/null || true
+  fi
+
   # Add the /etc/bitcoin/bitcoin.conf stat override if it doesn't already exist.
   if ! dpkg-statoverride --list /etc/bitcoin/bitcoin.conf >/dev/null 2>&1; then
     dpkg-statoverride --update --add bitcoin bitcoin 0640 /etc/bitcoin/bitcoin.conf
