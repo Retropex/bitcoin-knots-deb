@@ -1,7 +1,8 @@
 [Unit]
 Description=Bitcoin Daemon
 Documentation=man:bitcoind
-After=network.target
+After=network-online.target
+Wants=network-online.target
 [Service]
 User=bitcoin
 ExecStart=/usr/bin/bitcoind -conf=/etc/bitcoin/bitcoin.conf

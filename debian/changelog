@@ -1,3 +1,9 @@
+bitcoin-knots (29.3.knots20260508-3) unstable; urgency=medium
+
+  * Fix network availability in systemd service file.
+
+ -- Léo Haf <leo@haf.ovh>  Tue, 09 Jun 2026 11:23:08 +0200
+
 bitcoin-knots (29.3.knots20260508-2) unstable; urgency=medium
 
   * Loosen security hardening in systemd service file to allow USR call
