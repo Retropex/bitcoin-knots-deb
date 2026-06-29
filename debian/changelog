@@ -1,3 +1,9 @@
+bitcoin-knots (29.3.knots20260508-4) unstable; urgency=medium
+
+  * Use IMPLICIT flag for RDTS
+
+ -- Léo Haf <leo@haf.ovh>  Mon, 29 Jun 2026 13:48:01 +0200
+
 bitcoin-knots (29.3.knots20260508-3) unstable; urgency=medium
 
   * Fix network availability in systemd service file.
