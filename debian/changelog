@@ -1,14 +1,32 @@
+bitcoin-knots (29.3.knots20260508-4~bpo13+1) trixie-backports; urgency=medium
+
+  * Rebuild for trixie-backports.
+
+ -- Léo Haf <leo@haf.ovh>  Mon, 29 Jun 2026 14:06:05 +0200
+
 bitcoin-knots (29.3.knots20260508-4) unstable; urgency=medium
 
   * Use IMPLICIT flag for RDTS
 
  -- Léo Haf <leo@haf.ovh>  Mon, 29 Jun 2026 13:48:01 +0200
 
+bitcoin-knots (29.3.knots20260508-3~bpo13+1) trixie-backports; urgency=medium
+
+  * Rebuild for trixie-backports.
+
+ -- Léo Haf <leo@haf.ovh>  Tue, 09 Jun 2026 11:51:57 +0200
+
 bitcoin-knots (29.3.knots20260508-3) unstable; urgency=medium
 
   * Fix network availability in systemd service file.
 
  -- Léo Haf <leo@haf.ovh>  Tue, 09 Jun 2026 11:23:08 +0200
+
+bitcoin-knots (29.3.knots20260508-2~bpo13+1) trixie-backports; urgency=medium
+
+  * Rebuild for trixie-backports.
+
+ -- Léo Haf <leo@haf.ovh>  Mon, 01 Jun 2026 17:55:48 +0200
 
 bitcoin-knots (29.3.knots20260508-2) unstable; urgency=medium
 
@@ -22,6 +40,12 @@ bitcoin-knots (29.3.knots20260508-2) unstable; urgency=medium
   * Fix "Issues in Debconf man pages" (Closes: #1136433)
 
  -- Léo Haf <leo@haf.ovh>  Mon, 01 Jun 2026 15:41:29 +0200
+
+bitcoin-knots (29.3.knots20260508-1~bpo13+1) trixie-backports; urgency=medium
+
+  * Rebuild for trixie-backports.
+
+ -- Léo Haf <leo@haf.ovh>  Mon, 18 May 2026 16:16:28 +0200
 
 bitcoin-knots (29.3.knots20260508-1) unstable; urgency=medium
 
