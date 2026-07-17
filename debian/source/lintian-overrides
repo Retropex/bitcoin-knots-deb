@@ -2,5 +2,3 @@
 bitcoin-knots source: very-long-line-length-in-source-file
 bitcoin-knots source: source-is-missing [src/leveldb/doc/benchmark.html]
 bitcoin-knots source: debian-watch-does-not-check-openpgp-signature [debian/watch]
-# Forwarded to upstream
-bitcoin-knots source: maintainer-desktop-entry [debian/bitcoin-knots-gui.desktop]

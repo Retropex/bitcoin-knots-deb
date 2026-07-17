@@ -25,8 +25,11 @@ endif
 	dh $@ --builddirectory=build
 
 override_dh_auto_configure:
-	# Build with GUI and ZMQ support.
-	dh_auto_configure -- -DBUILD_GUI=ON -DWITH_ZMQ=ON -DRDTS_CONSENT=IMPLICIT
+	# Build without GUI, with ZMQ support.
+	dh_auto_configure -- -DBUILD_GUI=OFF -DWITH_ZMQ=ON -DRDTS_CONSENT=IMPLICIT
+
+override_dh_auto_install:
+	dh_auto_install --destdir=debian/tmp
 
 # Write the content of build/test/config.ini to the log, which can be used to
 # update debian/tests/config.ini.

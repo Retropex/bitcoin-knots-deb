@@ -13,12 +13,6 @@ Build-Depends: debhelper-compat (= 13),
  libminiupnpc-dev,
  systemtap-sdt-dev,
  libzmq3-dev,
- qtbase5-dev,
- qttools5-dev,
- qttools5-dev-tools,
- librsvg2-bin,
- imagemagick,
- libqrencode-dev,
  po-debconf
 Standards-Version: 4.7.4
 Homepage: https://bitcoinknots.org
@@ -34,19 +28,6 @@ Depends: ${misc:Depends},
  debconf
 Description: enhanced Bitcoin node/wallet software
  Bitcoin Knots is a Bitcoin client and it builds the
- backbone of the network.
- It downloads and, by default, stores the entire history of
- Bitcoin transactions, which requires a few hundred gigabytes of disk space.
- Depending on the speed of your computer and network connection,
- the synchronization process can take anywhere from a few
- hours to a day or more.
-
-Package: bitcoin-knots-gui
-Architecture: any
-Depends: ${misc:Depends},
- ${shlibs:Depends}
-Description: enhanced Bitcoin node/wallet software with GUI
- Bitcoin Knots (with GUI) is a Bitcoin client and it builds the
  backbone of the network.
  It downloads and, by default, stores the entire history of
  Bitcoin transactions, which requires a few hundred gigabytes of disk space.

@@ -1,7 +1,0 @@
-How to use the bitcoin.conf file:
-
-1. Copy /usr/share/doc/bitcoin-knots-gui/examples/bitcoin.conf in your datadir directory (usually ~/.bitcoin).
-2. Customise the settings as you wish.
-3. Restart bitcoin-qt.
-
-Optionnally you can supply a bitcoin conf file with "bitcoin-qt -conf=<dir>".
