@@ -2,8 +2,6 @@
 
 set -e
 
-USER="bitcoin"
-
 # Source debconf library
 . /usr/share/debconf/confmodule
 
@@ -33,28 +31,15 @@ update_conf_param () {
 case "$1" in
   configure|reconfigure)
   
-  if ! getent passwd $USER >/dev/null; then
-      adduser --group --system --no-create-home --home /nonexistent $USER >/dev/null || true
-  fi
-  
-  if getent group debian-tor >/dev/null; then
-    usermod -aG debian-tor $USER >/dev/null || true
-  fi
-
   # Ensure systemd-networkd-wait-online.service is enabled for bitcoind interface binding.
   if command -v deb-systemd-helper > /dev/null; then
     deb-systemd-helper enable systemd-networkd-wait-online.service >/dev/null || true
   fi
 
-  # Add the /etc/bitcoin/bitcoin.conf stat override if it doesn't already exist.
-  if ! dpkg-statoverride --list /etc/bitcoin/bitcoin.conf >/dev/null 2>&1; then
-    dpkg-statoverride --update --add bitcoin bitcoin 0640 /etc/bitcoin/bitcoin.conf
-  fi
-  
-  # Add the /var/lib/bitcoin stat override if it doesn't already exist.
-  if ! dpkg-statoverride --list /var/lib/bitcoin >/dev/null 2>&1; then
-    dpkg-statoverride --update --add bitcoin bitcoin 0755 /var/lib/bitcoin
-  fi
+  # begin-remove-after: released:forky
+  dpkg-statoverride --remove /etc/bitcoin/bitcoin.conf 2>/dev/null || true
+  dpkg-statoverride --remove /var/lib/bitcoin 2>/dev/null || true
+  # end-remove-after
   
   if [ -f /etc/bitcoin/bitcoin.conf ]; then
     db_get bitcoin-knots/prune-bool || RET=
