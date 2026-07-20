@@ -6,10 +6,6 @@ USER="bitcoin"
 
 case "$1" in
   purge)
-    if getent passwd $USER >/dev/null; then
-      deluser --system $USER || true
-    fi
-    
     for i in /etc/bitcoin/bitcoin.conf /var/lib/bitcoin; do
         if dpkg-statoverride --list $i >/dev/null 2>&1; then
             dpkg-statoverride --remove $i
