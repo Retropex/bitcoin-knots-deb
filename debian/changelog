@@ -3,6 +3,7 @@ bitcoin-knots (29.3.knots20260508-5) unstable; urgency=medium
   * Fix "[INTL:pt] Portuguese translation - debconf messages" (Closes: #1138797)
   * Fix "[INTL:de] Updated German debconf translation" (Closes: #1139156)
   * Fix "[INTL:nl] Dutch debconf templates translation" (Closes: #1140087)
+  * Remove dependency on systemtap-sdt-dev
 
  -- Léo Haf <leo@haf.ovh>  Thu, 30 Jul 2026 13:38:53 +0200
 
