@@ -1,0 +1,2 @@
+z /etc/bitcoin/bitcoin.conf 0640 bitcoin bitcoin
+d /var/lib/bitcoin 0755 bitcoin bitcoin
