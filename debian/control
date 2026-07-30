@@ -4,6 +4,7 @@ Maintainer: Debian Cryptocoin Team <team+cryptocoin@tracker.debian.org>
 Uploaders: Léo Haf <leo@haf.ovh>,
            Soren Stoutner <soren@debian.org>
 Build-Depends: debhelper-compat (= 13),
+ dh-sequence-installsysusers,
  cmake,
  pkgconf,
  python3,
@@ -26,10 +27,8 @@ Vcs-Browser: https://salsa.debian.org/cryptocoin-team/bitcoin-knots
 
 Package: bitcoin-knots
 Architecture: any
-# The postinst script requires adduser.
 Depends: ${misc:Depends},
  ${shlibs:Depends},
- adduser,
  debconf
 Description: enhanced Bitcoin node/wallet software
  Bitcoin Knots is a Bitcoin client and it builds the
