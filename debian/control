@@ -3,7 +3,7 @@ Section: utils
 Maintainer: Debian Cryptocoin Team <team+cryptocoin@tracker.debian.org>
 Uploaders: Léo Haf <leo@haf.ovh>,
            Soren Stoutner <soren@debian.org>
-Build-Depends: debhelper-compat (= 14),
+Build-Depends: debhelper-compat (= 13),
  dh-sequence-installsysusers,
  cmake,
  pkgconf,

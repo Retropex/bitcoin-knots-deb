@@ -1,6 +1,7 @@
 bitcoin-knots (29.4.knots20260508-1~bpo13+1) trixie-backports; urgency=medium
 
   * Rebuild for trixie-backports.
+  * Downgrade debhelper-compat to 13
 
  -- Léo Haf <leo@haf.ovh>  Fri, 07 Aug 2026 18:03:23 +0200
 
